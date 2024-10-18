@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import mongoose from 'mongoose';
 import { PlusCircle, Trash2, CheckCircle, ListTodo, StickyNote, LogOut } from 'lucide-react'
 import Calendar from 'react-calendar'
@@ -39,6 +39,8 @@ function App() {
   const [activeMemo, setActiveMemo] = useState<Memo | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -174,28 +176,34 @@ function App() {
     }
   }
 
-  const updateTodoDescription = async (id: string, description: string) => {
-    try {
-      const todoToUpdate = todos.find(todo => todo._id === id)
-      if (todoToUpdate) {
-        const response = await api.put(`/todos/${id}`, {
-          ...todoToUpdate,
-          description
-        })
-        setTodos(prevTodos => prevTodos.map(todo =>
-          todo._id === id ? { ...todo, description } : todo
-        ))
-      }
-    } catch (error) {
-      console.error('Error updating todo description:', error)
+  const debouncedUpdateTodoDescription = useCallback((id: string, description: string) => {
+    setTodos(prevTodos => prevTodos.map(todo =>
+      todo._id === id ? { ...todo, description } : todo
+    ))
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find(todo => todo._id === id)
+        if (todoToUpdate) {
+          await api.put(`/todos/${id}`, {
+            ...todoToUpdate,
+            description
+          })
+        }
+      } catch (error) {
+        console.error('Error updating todo description:', error)
+      }
+    }, 500);
+  }, [todos]);
 
   const addSubTodo = async (todoId: string) => {
     try {
       const todoToUpdate = todos.find(todo => todo._id === todoId)
       if (todoToUpdate) {
-        const newSubTodo = { _id: new mongoose.Types.ObjectId().toString(), text: '', completed: false } // 수정된 부분
+        const newSubTodo = { _id: new mongoose.Types.ObjectId().toString(), text: '', completed: false }
         const response = await api.put(`/todos/${todoId}`, {
           ...todoToUpdate,
           subTodos: [...todoToUpdate.subTodos, newSubTodo]
@@ -209,25 +217,38 @@ function App() {
     }
   }
 
-  const updateSubTodo = async (todoId: string, subTodoId: string, newText: string) => {
-    try {
-      const todoToUpdate = todos.find(todo => todo._id === todoId)
-      if (todoToUpdate) {
-        const updatedSubTodos = todoToUpdate.subTodos.map(subTodo =>
-          subTodo._id === subTodoId ? { ...subTodo, text: newText } : subTodo
-        )
-        const response = await api.put(`/todos/${todoId}`, {
-          ...todoToUpdate,
-          subTodos: updatedSubTodos
-        })
-        setTodos(prevTodos => prevTodos.map(todo =>
-          todo._id === todoId ? { ...todo, subTodos: updatedSubTodos } : todo
-        ))
-      }
-    } catch (error) {
-      console.error('Error updating sub-todo:', error)
+  const debouncedUpdateSubTodo = useCallback((todoId: string, subTodoId: string, newText: string) => {
+    setTodos(prevTodos => prevTodos.map(todo =>
+      todo._id === todoId
+        ? {
+            ...todo,
+            subTodos: todo.subTodos.map(subTodo =>
+              subTodo._id === subTodoId ? { ...subTodo, text: newText } : subTodo
+            )
+          }
+        : todo
+    ))
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find(todo => todo._id === todoId)
+        if (todoToUpdate) {
+          const updatedSubTodos = todoToUpdate.subTodos.map(subTodo =>
+            subTodo._id === subTodoId ? { ...subTodo, text: newText } : subTodo
+          )
+          await api.put(`/todos/${todoId}`, {
+            ...todoToUpdate,
+            subTodos: updatedSubTodos
+          })
+        }
+      } catch (error) {
+        console.error('Error updating sub-todo:', error)
+      }
+    }, 500);
+  }, [todos]);
 
   const toggleSubTodo = async (todoId: string, subTodoId: string) => {
     try {
@@ -286,17 +307,23 @@ function App() {
     }
   }
 
-  const updateMemo = async (id: string, title: string, content: string) => {
-    try {
-      const response = await api.put(`/memos/${id}`, { title, content })
-      setMemos(prevMemos => prevMemos.map(memo =>
-        memo._id === id ? response.data : memo
-      ))
-      setActiveMemo(response.data)
-    } catch (error) {
-      console.error('Error updating memo:', error)
+  const debouncedUpdateMemo = useCallback((id: string, title: string, content: string) => {
+    setMemos(prevMemos => prevMemos.map(memo =>
+      memo._id === id ? { ...memo, title, content } : memo
+    ))
+    setActiveMemo(prevMemo => prevMemo && prevMemo._id === id ? { ...prevMemo, title, content } : prevMemo)
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        await api.put(`/memos/${id}`, { title, content })
+      } catch (error) {
+        console.error('Error updating memo:', error)
+      }
+    }, 500);
+  }, []);
 
   const deleteMemo = async (id: string) => {
     try {
@@ -423,7 +450,7 @@ function App() {
                       <input
                         type="text"
                         value={todo.description}
-                        onChange={(e) => updateTodoDescription(todo._id, e.target.value)}
+                        onChange={(e) => debouncedUpdateTodoDescription(todo._id, e.target.value)}
                         className="w-full bg-white border rounded px-2 py-1"
                         placeholder="설명 추가..."
                       />
@@ -440,7 +467,7 @@ function App() {
                           <input
                             type="text"
                             value={subTodo.text}
-                            onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
+                            onChange={(e) => debouncedUpdateSubTodo(todo._id, subTodo._id, e.target.value)}
                             className={`flex-grow bg-transparent ${subTodo.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}
                             placeholder="하위 할 일..."
                           />
@@ -501,14 +528,14 @@ function App() {
                     <input
                       type="text"
                       value={activeMemo.title}
-                      onChange={(e) => updateMemo(activeMemo._id, e.target.value, activeMemo.content)}
+                      onChange={(e) => debouncedUpdateMemo(activeMemo._id, e.target.value, activeMemo.content)}
                       className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                       placeholder="제목"
                     />
                   </div>
                   <textarea
                     value={activeMemo.content}
-                    onChange={(e) => updateMemo(activeMemo._id, activeMemo.title, e.target.value)}
+                    onChange={(e) => debouncedUpdateMemo(activeMemo._id, activeMemo.title, e.target.value)}
                     className="w-full h-[400px] p-2 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
                     placeholder="내용을 입력하세요..."
                   />

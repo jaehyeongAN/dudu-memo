@@ -39,7 +39,6 @@ function App() {
   const [activeMemo, setActiveMemo] = useState<Memo | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
-
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const fetchTodos = useCallback(async () => {
@@ -159,22 +158,28 @@ function App() {
     }
   }
 
-  const updateTodoText = async (id: string, newText: string) => {
-    try {
-      const todoToUpdate = todos.find(todo => todo._id === id)
-      if (todoToUpdate) {
-        const response = await api.put(`/todos/${id}`, {
-          ...todoToUpdate,
-          text: newText
-        })
-        setTodos(prevTodos => prevTodos.map(todo =>
-          todo._id === id ? { ...todo, text: newText } : todo
-        ))
-      }
-    } catch (error) {
-      console.error('Error updating todo text:', error)
+  const debouncedUpdateTodoText = useCallback((id: string, newText: string) => {
+    setTodos(prevTodos => prevTodos.map(todo =>
+      todo._id === id ? { ...todo, text: newText } : todo
+    ))
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find(todo => todo._id === id)
+        if (todoToUpdate) {
+          await api.put(`/todos/${id}`, {
+            ...todoToUpdate,
+            text: newText
+          })
+        }
+      } catch (error) {
+        console.error('Error updating todo text:', error)
+      }
+    }, 500);
+  }, [todos]);
 
   const debouncedUpdateTodoDescription = useCallback((id: string, description: string) => {
     setTodos(prevTodos => prevTodos.map(todo =>
@@ -435,7 +440,7 @@ function App() {
                         <input
                           type="text"
                           value={todo.text}
-                          onChange={(e) => updateTodoText(todo._id, e.target.value)}
+                          onChange={(e) => debouncedUpdateTodoText(todo._id, e.target.value)}
                           className={`bg-transparent flex-grow ${todo.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}
                         />
                       </div>

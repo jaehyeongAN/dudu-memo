@@ -5,8 +5,13 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import winston from 'winston';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Winston 로거 설정
 const logger = winston.createLogger({
@@ -29,25 +34,32 @@ const logger = winston.createLogger({
 
 const app = express();
 
-// CORS 설정 업데이트
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// CORS 설정
+app.use(cors());
 
+// Body parser 미들웨어
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 로깅 미들웨어
-app.use((req, res, next) => {
+// 정적 파일 제공 (프론트엔드 빌드 결과물)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// 에러 핸들링 미들웨어
+app.use((err, req, res, next) => {
+  logger.error('Error:', err);
+  res.status(500).json({ message: 'Internal server error', error: err.message });
+});
+
+// MongoDB 연결
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => logger.info('Connected to MongoDB'))
+  .catch((error) => logger.error('MongoDB connection error:', error));
+
+// API 라우트 설정
+app.use('/api', (req, res, next) => {
   logger.info(`${req.method} ${req.url}`);
   next();
 });
-
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => logger.info('Connected to MongoDB'))
-  .catch((error) => logger.error('MongoDB connection error:', error));
 
 // User Schema
 const UserSchema = new mongoose.Schema({
@@ -87,7 +99,23 @@ const TodoSchema = new mongoose.Schema({
 
 const Todo = mongoose.model('Todo', TodoSchema);
 
-// Signup
+// Auth 미들웨어
+const auth = (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    logger.error('Authentication error:', error);
+    res.status(401).json({ message: 'Please authenticate' });
+  }
+};
+
+// API 라우트
 app.post('/api/signup', async (req, res) => {
   try {
     const { name, birthdate, email, password } = req.body;
@@ -102,7 +130,6 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -125,20 +152,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Middleware to verify JWT
-const auth = (req, res, next) => {
-  try {
-    const token = req.header('Authorization').replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    logger.error('Authentication error:', error);
-    res.status(401).json({ message: 'Please authenticate' });
-  }
-};
-
-// Get todos
 app.get('/api/todos', auth, async (req, res) => {
   try {
     const todos = await Todo.find({ userId: req.userId });
@@ -150,7 +163,6 @@ app.get('/api/todos', auth, async (req, res) => {
   }
 });
 
-// Add todo
 app.post('/api/todos', auth, async (req, res) => {
   try {
     const todo = new Todo({ ...req.body, userId: req.userId });
@@ -163,7 +175,6 @@ app.post('/api/todos', auth, async (req, res) => {
   }
 });
 
-// Update todo
 app.put('/api/todos/:id', auth, async (req, res) => {
   try {
     const todo = await Todo.findOneAndUpdate(
@@ -183,7 +194,6 @@ app.put('/api/todos/:id', auth, async (req, res) => {
   }
 });
 
-// Delete todo
 app.delete('/api/todos/:id', auth, async (req, res) => {
   try {
     const todo = await Todo.findOneAndDelete({ _id: req.params.id, userId: req.userId });
@@ -199,7 +209,6 @@ app.delete('/api/todos/:id', auth, async (req, res) => {
   }
 });
 
-// Get memos
 app.get('/api/memos', auth, async (req, res) => {
   try {
     const memos = await Memo.find({ userId: req.userId });
@@ -211,7 +220,6 @@ app.get('/api/memos', auth, async (req, res) => {
   }
 });
 
-// Add memo
 app.post('/api/memos', auth, async (req, res) => {
   try {
     const memo = new Memo({ ...req.body, userId: req.userId });
@@ -224,7 +232,6 @@ app.post('/api/memos', auth, async (req, res) => {
   }
 });
 
-// Update memo
 app.put('/api/memos/:id', auth, async (req, res) => {
   try {
     const memo = await Memo.findOneAndUpdate(
@@ -244,7 +251,6 @@ app.put('/api/memos/:id', auth, async (req, res) => {
   }
 });
 
-// Delete memo
 app.delete('/api/memos/:id', auth, async (req, res) => {
   try {
     const memo = await Memo.findOneAndDelete({ _id: req.params.id, userId: req.userId });
@@ -260,5 +266,12 @@ app.delete('/api/memos/:id', auth, async (req, res) => {
   }
 });
 
+// SPA를 위한 catch-all 라우트
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`Server running on port ${PORT}`);
+});

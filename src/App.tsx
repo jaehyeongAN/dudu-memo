@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { format, isSameDay } from 'date-fns';
+import mongoose from 'mongoose';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-
-import Header from './components/layout/Header';
-import Sidebar from './components/layout/Sidebar';
 import Login from './components/Login';
 import Signup from './components/Signup';
-import TodoList from './components/todo/TodoList';
-import MemoList from './components/memo/MemoList';
+import Header from './components/Header';
+import TodoList from './components/TodoList';
+import MemoList from './components/MemoList';
 import api from './api';
 import { Todo, Memo } from './types';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo'>('todo');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -22,7 +19,10 @@ function App() {
   const [activeMemo, setActiveMemo] = useState<Memo | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch data functions
   const fetchTodos = useCallback(async () => {
     try {
       const response = await api.get('/todos');
@@ -52,6 +52,7 @@ function App() {
     }
   }, []);
 
+  // Auth functions
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -97,6 +98,7 @@ function App() {
     setMemos([]);
   };
 
+  // Todo functions
   const addTodo = async () => {
     if (newTodo.trim() !== '') {
       try {
@@ -107,13 +109,7 @@ function App() {
           description: '',
           subTodos: [],
         });
-        setTodos((prevTodos) => [
-          ...prevTodos,
-          {
-            ...response.data,
-            date: new Date(response.data.date),
-          },
-        ]);
+        setTodos((prevTodos) => [...prevTodos, response.data]);
         setNewTodo('');
       } catch (error) {
         console.error('Error adding todo:', error);
@@ -147,60 +143,108 @@ function App() {
     }
   };
 
-  const updateTodoText = async (id: string, text: string) => {
-    try {
-      const todoToUpdate = todos.find((todo) => todo._id === id);
-      if (todoToUpdate) {
-        const response = await api.put(`/todos/${id}`, {
-          ...todoToUpdate,
-          text,
-        });
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
-        );
-      }
-    } catch (error) {
-      console.error('Error updating todo text:', error);
+  const updateTodoText = (id: string, text: string) => {
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) => (todo._id === id ? { ...todo, text } : todo))
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find((todo) => todo._id === id);
+        if (todoToUpdate) {
+          await api.put(`/todos/${id}`, { ...todoToUpdate, text });
+        }
+      } catch (error) {
+        console.error('Error updating todo text:', error);
+      }
+    }, 500);
   };
 
-  const updateTodoDescription = async (id: string, description: string) => {
-    try {
-      const todoToUpdate = todos.find((todo) => todo._id === id);
-      if (todoToUpdate) {
-        const response = await api.put(`/todos/${id}`, {
-          ...todoToUpdate,
-          description,
-        });
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
-        );
-      }
-    } catch (error) {
-      console.error('Error updating todo description:', error);
+  const updateTodoDescription = (id: string, description: string) => {
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo._id === id ? { ...todo, description } : todo
+      )
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find((todo) => todo._id === id);
+        if (todoToUpdate) {
+          await api.put(`/todos/${id}`, { ...todoToUpdate, description });
+        }
+      } catch (error) {
+        console.error('Error updating todo description:', error);
+      }
+    }, 500);
   };
 
+  // SubTodo functions
   const addSubTodo = async (todoId: string) => {
     try {
       const todoToUpdate = todos.find((todo) => todo._id === todoId);
       if (todoToUpdate) {
         const newSubTodo = {
-          _id: Math.random().toString(),
+          _id: new mongoose.Types.ObjectId().toString(),
           text: '',
           completed: false,
         };
-        const response = await api.put(`/todos/${todoId}`, {
+        await api.put(`/todos/${todoId}`, {
           ...todoToUpdate,
           subTodos: [...todoToUpdate.subTodos, newSubTodo],
         });
         setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === todoId ? response.data : todo))
+          prevTodos.map((todo) =>
+            todo._id === todoId
+              ? { ...todo, subTodos: [...todo.subTodos, newSubTodo] }
+              : todo
+          )
         );
       }
     } catch (error) {
       console.error('Error adding sub-todo:', error);
     }
+  };
+
+  const updateSubTodo = (todoId: string, subTodoId: string, text: string) => {
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo._id === todoId
+          ? {
+              ...todo,
+              subTodos: todo.subTodos.map((subTodo) =>
+                subTodo._id === subTodoId ? { ...subTodo, text } : subTodo
+              ),
+            }
+          : todo
+      )
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = todos.find((todo) => todo._id === todoId);
+        if (todoToUpdate) {
+          const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>
+            subTodo._id === subTodoId ? { ...subTodo, text } : subTodo
+          );
+          await api.put(`/todos/${todoId}`, {
+            ...todoToUpdate,
+            subTodos: updatedSubTodos,
+          });
+        }
+      } catch (error) {
+        console.error('Error updating sub-todo:', error);
+      }
+    }, 500);
   };
 
   const toggleSubTodo = async (todoId: string, subTodoId: string) => {
@@ -225,30 +269,6 @@ function App() {
     }
   };
 
-  const updateSubTodo = async (
-    todoId: string,
-    subTodoId: string,
-    text: string
-  ) => {
-    try {
-      const todoToUpdate = todos.find((todo) => todo._id === todoId);
-      if (todoToUpdate) {
-        const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>
-          subTodo._id === subTodoId ? { ...subTodo, text } : subTodo
-        );
-        const response = await api.put(`/todos/${todoId}`, {
-          ...todoToUpdate,
-          subTodos: updatedSubTodos,
-        });
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === todoId ? response.data : todo))
-        );
-      }
-    } catch (error) {
-      console.error('Error updating sub-todo:', error);
-    }
-  };
-
   const deleteSubTodo = async (todoId: string, subTodoId: string) => {
     try {
       const todoToUpdate = todos.find((todo) => todo._id === todoId);
@@ -256,12 +276,14 @@ function App() {
         const updatedSubTodos = todoToUpdate.subTodos.filter(
           (subTodo) => subTodo._id !== subTodoId
         );
-        const response = await api.put(`/todos/${todoId}`, {
+        await api.put(`/todos/${todoId}`, {
           ...todoToUpdate,
           subTodos: updatedSubTodos,
         });
         setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === todoId ? response.data : todo))
+          prevTodos.map((todo) =>
+            todo._id === todoId ? { ...todo, subTodos: updatedSubTodos } : todo
+          )
         );
       }
     } catch (error) {
@@ -269,6 +291,7 @@ function App() {
     }
   };
 
+  // Memo functions
   const addMemo = async () => {
     try {
       const newMemo = {
@@ -284,56 +307,39 @@ function App() {
     }
   };
 
-  const updateMemo = async (id: string, title: string, content: string) => {
-    try {
-      const response = await api.put(`/memos/${id}`, { title, content });
-      setMemos((prevMemos) =>
-        prevMemos.map((memo) => (memo._id === id ? response.data : memo))
-      );
-      if (activeMemo?._id === id) {
-        setActiveMemo(response.data);
-      }
-    } catch (error) {
-      console.error('Error updating memo:', error);
+  const updateMemo = (id: string, title: string, content: string) => {
+    setMemos((prevMemos) =>
+      prevMemos.map((memo) =>
+        memo._id === id ? { ...memo, title, content } : memo
+      )
+    );
+    setActiveMemo((prevMemo) =>
+      prevMemo && prevMemo._id === id
+        ? { ...prevMemo, title, content }
+        : prevMemo
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        await api.put(`/memos/${id}`, { title, content });
+      } catch (error) {
+        console.error('Error updating memo:', error);
+      }
+    }, 500);
   };
 
   const deleteMemo = async (id: string) => {
     try {
       await api.delete(`/memos/${id}`);
       setMemos((prevMemos) => prevMemos.filter((memo) => memo._id !== id));
-      if (activeMemo?._id === id) {
+      if (activeMemo && activeMemo._id === id) {
         setActiveMemo(null);
       }
     } catch (error) {
       console.error('Error deleting memo:', error);
-    }
-  };
-
-  const filteredTodos = todos.filter((todo) =>
-    isSameDay(new Date(todo.date), selectedDate)
-  );
-
-  const tileContent = ({ date, view }: { date: Date; view: string }) => {
-    if (view === 'month') {
-      const todosForDate = todos.filter((todo) =>
-        isSameDay(new Date(todo.date), date)
-      );
-      return (
-        <div className="text-xs">
-          {todosForDate.slice(0, 3).map((todo, index) => (
-            <div
-              key={index}
-              className={`truncate ${
-                todo.completed ? 'line-through text-gray-400' : ''
-              }`}
-            >
-              {todo.text}
-            </div>
-          ))}
-          {todosForDate.length > 3 && <div>...</div>}
-        </div>
-      );
     }
   };
 
@@ -345,64 +351,67 @@ function App() {
     );
   }
 
+  const filteredTodos = todos.filter((todo) => {
+    const todoDate = new Date(todo.date);
+    return (
+      todoDate.getFullYear() === selectedDate.getFullYear() &&
+      todoDate.getMonth() === selectedDate.getMonth() &&
+      todoDate.getDate() === selectedDate.getDate()
+    );
+  });
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header onLogout={handleLogout} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <Sidebar
+    <div className="min-h-screen bg-gray-50">
+      <Header
         activeTab={activeTab}
-        onTabChange={setActiveTab}
-        isOpen={isSidebarOpen}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      <main className="pt-16 lg:pl-64">
-        <div className="p-4 md:p-6 lg:p-8">
-          {activeTab === 'todo' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <Calendar
-                  onChange={(value) => {
-                    if (value instanceof Date) {
-                      setSelectedDate(value);
-                    }
-                  }}
-                  value={selectedDate}
-                  tileContent={tileContent}
-                  className="w-full border-none"
-                />
-              </div>
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <h2 className="text-xl font-bold mb-4">
-                  {format(selectedDate, 'yyyy년 MM월 dd일')} 할 일
-                </h2>
-                <TodoList
-                  todos={filteredTodos}
-                  onAddTodo={addTodo}
-                  onToggleTodo={toggleTodo}
-                  onDeleteTodo={deleteTodo}
-                  onUpdateTodoText={updateTodoText}
-                  onUpdateTodoDescription={updateTodoDescription}
-                  onAddSubTodo={addSubTodo}
-                  onToggleSubTodo={toggleSubTodo}
-                  onUpdateSubTodo={updateSubTodo}
-                  onDeleteSubTodo={deleteSubTodo}
-                  newTodo={newTodo}
-                  onNewTodoChange={setNewTodo}
-                />
-              </div>
-            </div>
-          )}
-          {activeTab === 'memo' && (
-            <div className="bg-white rounded-lg shadow-sm p-4 min-h-[calc(100vh-9rem)]">
-              <MemoList
-                memos={memos}
-                activeMemo={activeMemo}
-                onAddMemo={addMemo}
-                onSelectMemo={setActiveMemo}
-                onUpdateMemo={updateMemo}
-                onDeleteMemo={deleteMemo}
+
+      <main className="pt-16">
+        {activeTab === 'todo' ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <Calendar
+                onChange={(value) => {
+                  if (value instanceof Date) {
+                    setSelectedDate(value);
+                  }
+                }}
+                value={selectedDate}
+                className="w-full border-none"
               />
             </div>
-          )}
-        </div>
+            <TodoList
+              todos={filteredTodos}
+              selectedDate={selectedDate}
+              newTodo={newTodo}
+              setNewTodo={setNewTodo}
+              addTodo={addTodo}
+              toggleTodo={toggleTodo}
+              deleteTodo={deleteTodo}
+              updateTodoText={updateTodoText}
+              updateTodoDescription={updateTodoDescription}
+              addSubTodo={addSubTodo}
+              updateSubTodo={updateSubTodo}
+              toggleSubTodo={toggleSubTodo}
+              deleteSubTodo={deleteSubTodo}
+            />
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <MemoList
+              memos={memos}
+              activeMemo={activeMemo}
+              setActiveMemo={setActiveMemo}
+              addMemo={addMemo}
+              updateMemo={updateMemo}
+              deleteMemo={deleteMemo}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

@@ -4,133 +4,137 @@
 
 body {
   font-family: 'Noto Sans KR', sans-serif;
+  @apply bg-gray-50;
 }
 
-.react-datepicker-wrapper {
-  width: 100%;
-}
-
-.react-datepicker__input-container input {
-  width: 100%;
-}
-
-/* Custom styles for react-calendar */
+/* Calendar Styles */
 .react-calendar {
-  width: 100%;
-  max-width: 100%;
-  background: white;
-  border: none;
-  font-family: 'Noto Sans KR', sans-serif;
+  @apply w-full max-w-full bg-white border-none font-sans;
   line-height: 1.125em;
 }
 
 .react-calendar__navigation button {
-  color: #3b82f6;
-  min-width: 44px;
-  background: none;
-  font-size: 16px;
-  margin-top: 8px;
+  @apply min-w-11 bg-transparent text-indigo-600 text-base mt-2;
 }
 
 .react-calendar__navigation button:enabled:hover,
 .react-calendar__navigation button:enabled:focus {
-  background-color: #f0f0f0;
+  @apply bg-indigo-50;
 }
 
 .react-calendar__navigation button[disabled] {
-  background-color: #f0f0f0;
-}
-
-abbr[title] {
-  text-decoration: none;
+  @apply bg-gray-50;
 }
 
 .react-calendar__month-view__days__day--weekend {
-  color: #d10000;
+  @apply text-red-600;
+}
+
+.react-calendar__tile {
+  @apply p-2 text-sm;
 }
 
 .react-calendar__tile:enabled:hover,
 .react-calendar__tile:enabled:focus {
-  background: #f0f0f0;
-  color: #3b82f6;
-  border-radius: 6px;
+  @apply bg-indigo-50 text-indigo-600 rounded-lg;
 }
 
 .react-calendar__tile--now {
-  background: #fffde7;
-  border-radius: 6px;
-  font-weight: bold;
-  color: #3b82f6;
+  @apply bg-yellow-50 rounded-lg font-bold text-indigo-600;
 }
 
 .react-calendar__tile--now:enabled:hover,
 .react-calendar__tile--now:enabled:focus {
-  background: #fffde7;
-  border-radius: 6px;
-  font-weight: bold;
-  color: #3b82f6;
-}
-
-.react-calendar__tile--hasActive:enabled:hover,
-.react-calendar__tile--hasActive:enabled:focus {
-  background: #f0f0f0;
+  @apply bg-yellow-100 rounded-lg font-bold text-indigo-700;
 }
 
 .react-calendar__tile--active {
-  background: #3b82f6;
-  border-radius: 6px;
-  font-weight: bold;
-  color: white;
+  @apply bg-indigo-500 rounded-lg font-bold text-white;
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
-  background: #3b82f6;
-  color: white;
+  @apply bg-indigo-600 text-white;
 }
 
-.react-calendar--selectRange .react-calendar__tile--hover {
-  background-color: #f0f0f0;
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  .react-calendar {
+    @apply text-sm;
+  }
+
+  .react-calendar__tile {
+    @apply p-1;
+  }
+
+  .react-calendar__navigation button {
+    @apply text-sm;
+  }
 }
 
-.react-calendar__tile--range {
-  background: #f0f0f0;
-  color: #3b82f6;
-  border-radius: 0;
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  @apply w-2;
 }
 
-.react-calendar__tile--rangeStart {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
-  background: #3b82f6;
-  color: white;
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
 
-.react-calendar__tile--rangeEnd {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 6px;
-  border-bottom-right-radius: 6px;
-  background: #3b82f6;
-  color: white;
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
 }
 
-/* Custom scrollbar */
-.scrollbar-thin {
-  scrollbar-width: thin;
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
 }
 
-.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
-  border-radius: 6px;
+/* Transitions */
+.fade-enter {
+  opacity: 0;
 }
 
-.scrollbar-track-gray-100::-webkit-scrollbar-track {
-  background-color: #f3f4f6;
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
 }
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+/* Input Focus States */
+input:focus, textarea:focus {
+  @apply ring-2 ring-indigo-500 ring-offset-2 ring-offset-white;
+}
+
+/* Button Hover Effects */
+.btn-hover {
+  @apply transform transition-all duration-200 hover:scale-105;
+}
+
+/* Card Hover Effects */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg;
+}
+
+/* Custom Animations */
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out forwards;
 }

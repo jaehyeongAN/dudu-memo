@@ -138,3 +138,33 @@ input:focus, textarea:focus {
 .slide-in {
   animation: slideIn 0.3s ease-out forwards;
 }
+
+/* Calendar Tile Content Styles 추가 */
+.react-calendar__tile {
+  @apply p-2 text-sm relative;
+  min-height: 70px;
+}
+
+.react-calendar__tile > abbr {
+  @apply block mb-1;
+}
+
+.react-calendar__month-view__days__day {
+  @apply relative;
+}
+
+/* 할 일 표시 스타일 */
+.react-calendar__tile-content {
+  @apply absolute bottom-1 left-1 right-1;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 640px) {
+  .react-calendar__tile {
+    min-height: 60px;
+  }
+  
+  .react-calendar__tile > abbr {
+    @apply text-xs;
+  }
+}

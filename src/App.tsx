@@ -9,6 +9,7 @@ import TodoList from './components/TodoList';
 import MemoList from './components/MemoList';
 import api from './api';
 import { Todo, Memo } from './types';
+import { getTodoStats } from './utils/todoStats';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo'>('todo');
@@ -360,6 +361,30 @@ function App() {
     );
   });
 
+  const tileContent = ({ date, view }: { date: Date; view: string }) => {
+    if (view === 'month') {
+      const stats = getTodoStats(todos, date);
+      
+      if (stats.total === 0) return null;
+  
+      return (
+        <div className="text-xs mt-1">
+          {stats.remaining > 0 && (
+            <div className="text-indigo-600">
+              • {stats.remaining}개 남음
+            </div>
+          )}
+          {stats.completed > 0 && (
+            <div className="text-green-600">
+              • {stats.completed}개 완료
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
@@ -383,6 +408,7 @@ function App() {
                       }
                     }}
                     value={selectedDate}
+                    tileContent={tileContent}
                     className="w-full border-none"
                   />
                 </div>

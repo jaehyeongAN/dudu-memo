@@ -373,32 +373,38 @@ function App() {
       <main className="pt-16">
         {activeTab === 'todo' ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-              <Calendar
-                onChange={(value) => {
-                  if (value instanceof Date) {
-                    setSelectedDate(value);
-                  }
-                }}
-                value={selectedDate}
-                className="w-full border-none"
-              />
+            <div className="flex flex-col lg:flex-row gap-8">
+              <div className="lg:w-1/3">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-24">
+                  <Calendar
+                    onChange={(value) => {
+                      if (value instanceof Date) {
+                        setSelectedDate(value);
+                      }
+                    }}
+                    value={selectedDate}
+                    className="w-full border-none"
+                  />
+                </div>
+              </div>
+              <div className="lg:w-2/3">
+                <TodoList
+                  todos={filteredTodos}
+                  selectedDate={selectedDate}
+                  newTodo={newTodo}
+                  setNewTodo={setNewTodo}
+                  addTodo={addTodo}
+                  toggleTodo={toggleTodo}
+                  deleteTodo={deleteTodo}
+                  updateTodoText={updateTodoText}
+                  updateTodoDescription={updateTodoDescription}
+                  addSubTodo={addSubTodo}
+                  updateSubTodo={updateSubTodo}
+                  toggleSubTodo={toggleSubTodo}
+                  deleteSubTodo={deleteSubTodo}
+                />
+              </div>
             </div>
-            <TodoList
-              todos={filteredTodos}
-              selectedDate={selectedDate}
-              newTodo={newTodo}
-              setNewTodo={setNewTodo}
-              addTodo={addTodo}
-              toggleTodo={toggleTodo}
-              deleteTodo={deleteTodo}
-              updateTodoText={updateTodoText}
-              updateTodoDescription={updateTodoDescription}
-              addSubTodo={addSubTodo}
-              updateSubTodo={updateSubTodo}
-              toggleSubTodo={toggleSubTodo}
-              deleteSubTodo={deleteSubTodo}
-            />
           </div>
         ) : (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

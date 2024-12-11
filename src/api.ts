@@ -1,13 +1,7 @@
 import axios from 'axios';
 
-// API 기본 URL을 동적으로 설정
-const getBaseUrl = () => {
-  // 항상 현재 호스트의 /api 경로 사용
-  return '/api';
-};
-
 const api = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   }
@@ -37,7 +31,6 @@ api.interceptors.response.use(
       window.location.reload();
     }
     
-    // 네트워크 에러 처리
     if (error.code === 'ERR_NETWORK') {
       console.error('Network error occurred. Please check your connection.');
     }

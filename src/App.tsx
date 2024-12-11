@@ -126,15 +126,22 @@ function App() {
           ...todoToUpdate,
           completed: !todoToUpdate.completed,
         });
+        
+        // 응답 데이터에서 date를 Date 객체로 변환
+        const updatedTodo = {
+          ...response.data,
+          date: new Date(response.data.date)
+        };
+        
         setTodos((prevTodos) =>
-          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
+          prevTodos.map((todo) => (todo._id === id ? updatedTodo : todo))
         );
       }
     } catch (error) {
       console.error('Error updating todo:', error);
     }
   };
-
+  
   const deleteTodo = async (id: string) => {
     try {
       await api.delete(`/todos/${id}`);

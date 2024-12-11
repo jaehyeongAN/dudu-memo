@@ -68,7 +68,8 @@ const TodoList: React.FC<TodoListProps> = ({
                 onClick={() => toggleTodo(todo._id)}
                 className={`flex-shrink-0 focus:outline-none ${
                   todo.completed ? 'text-green-500' : 'text-gray-400'
-                }`}
+                } hover:scale-110 transition-transform`}
+                aria-label={todo.completed ? "할 일 완료 취소" : "할 일 완료"}
               >
                 <CheckCircle className="w-5 h-5" />
               </button>
@@ -76,13 +77,14 @@ const TodoList: React.FC<TodoListProps> = ({
                 type="text"
                 value={todo.text}
                 onChange={(e) => updateTodoText(todo._id, e.target.value)}
-                className={`flex-grow bg-transparent focus:outline-none ${
+                className={`flex-grow bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 ${
                   todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
                 }`}
               />
               <button
                 onClick={() => deleteTodo(todo._id)}
-                className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none"
+                className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
+                aria-label="할 일 삭제"
               >
                 <Trash2 className="w-5 h-5" />
               </button>

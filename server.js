@@ -44,24 +44,12 @@ app.use(express.urlencoded({ extended: true }));
 // 정적 파일 제공 (프론트엔드 빌드 결과물)
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// 에러 핸들링 미들웨어
-app.use((err, req, res, next) => {
-  logger.error('Error:', err);
-  res.status(500).json({ message: 'Internal server error', error: err.message });
-});
-
 // MongoDB 연결
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => logger.info('Connected to MongoDB'))
   .catch((error) => logger.error('MongoDB connection error:', error));
 
-// API 라우트 설정
-app.use('/api', (req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);
-  next();
-});
-
-// User Schema
+// Schemas
 const UserSchema = new mongoose.Schema({
   name: String,
   birthdate: Date,
@@ -69,25 +57,25 @@ const UserSchema = new mongoose.Schema({
   password: String,
 });
 
-const User = mongoose.model('User', UserSchema);
+const CategorySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  name: String,
+  color: String,
+});
 
-// Memo Schema
 const MemoSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   title: String,
   content: String,
   lastEdited: { type: Date, default: Date.now },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
 });
 
-const Memo = mongoose.model('Memo', MemoSchema);
-
-// SubTodo Schema
 const SubTodoSchema = new mongoose.Schema({
   text: String,
   completed: Boolean,
 });
 
-// Todo Schema
 const TodoSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   text: String,
@@ -97,6 +85,10 @@ const TodoSchema = new mongoose.Schema({
   subTodos: [SubTodoSchema],
 });
 
+// Models
+const User = mongoose.model('User', UserSchema);
+const Category = mongoose.model('Category', CategorySchema);
+const Memo = mongoose.model('Memo', MemoSchema);
 const Todo = mongoose.model('Todo', TodoSchema);
 
 // Auth 미들웨어
@@ -115,7 +107,7 @@ const auth = (req, res, next) => {
   }
 };
 
-// API 라우트
+// API Routes
 app.post('/api/signup', async (req, res) => {
   try {
     const { name, birthdate, email, password } = req.body;
@@ -152,10 +144,70 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Category Routes
+app.get('/api/categories', auth, async (req, res) => {
+  try {
+    const categories = await Category.find({ userId: req.userId });
+    res.json(categories);
+  } catch (error) {
+    logger.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Error fetching categories', error: error.message });
+  }
+});
+
+app.post('/api/categories', auth, async (req, res) => {
+  try {
+    const category = new Category({ ...req.body, userId: req.userId });
+    await category.save();
+    res.status(201).json(category);
+  } catch (error) {
+    logger.error('Error creating category:', error);
+    res.status(500).json({ message: 'Error creating category', error: error.message });
+  }
+});
+
+app.put('/api/categories/:id', auth, async (req, res) => {
+  try {
+    const category = await Category.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.json(category);
+  } catch (error) {
+    logger.error('Error updating category:', error);
+    res.status(500).json({ message: 'Error updating category', error: error.message });
+  }
+});
+
+app.delete('/api/categories/:id', auth, async (req, res) => {
+  try {
+    const category = await Category.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId,
+    });
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    // Remove category reference from memos
+    await Memo.updateMany(
+      { userId: req.userId, categoryId: req.params.id },
+      { $unset: { categoryId: "" } }
+    );
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting category:', error);
+    res.status(500).json({ message: 'Error deleting category', error: error.message });
+  }
+});
+
+// Todo Routes
 app.get('/api/todos', auth, async (req, res) => {
   try {
     const todos = await Todo.find({ userId: req.userId });
-    logger.info(`Fetched todos for user: ${req.userId}`);
     res.json(todos);
   } catch (error) {
     logger.error('Error fetching todos:', error);
@@ -167,7 +219,6 @@ app.post('/api/todos', auth, async (req, res) => {
   try {
     const todo = new Todo({ ...req.body, userId: req.userId });
     await todo.save();
-    logger.info(`New todo added for user: ${req.userId}`);
     res.status(201).json(todo);
   } catch (error) {
     logger.error('Error adding todo:', error);
@@ -183,10 +234,8 @@ app.put('/api/todos/:id', auth, async (req, res) => {
       { new: true }
     );
     if (!todo) {
-      logger.warn(`Todo not found for update: ${req.params.id}`);
       return res.status(404).json({ message: 'Todo not found' });
     }
-    logger.info(`Todo updated: ${req.params.id}`);
     res.json(todo);
   } catch (error) {
     logger.error('Error updating todo:', error);
@@ -198,10 +247,8 @@ app.delete('/api/todos/:id', auth, async (req, res) => {
   try {
     const todo = await Todo.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!todo) {
-      logger.warn(`Todo not found for deletion: ${req.params.id}`);
       return res.status(404).json({ message: 'Todo not found' });
     }
-    logger.info(`Todo deleted: ${req.params.id}`);
     res.json({ message: 'Todo deleted successfully' });
   } catch (error) {
     logger.error('Error deleting todo:', error);
@@ -209,10 +256,10 @@ app.delete('/api/todos/:id', auth, async (req, res) => {
   }
 });
 
+// Memo Routes
 app.get('/api/memos', auth, async (req, res) => {
   try {
     const memos = await Memo.find({ userId: req.userId });
-    logger.info(`Fetched memos for user: ${req.userId}`);
     res.json(memos);
   } catch (error) {
     logger.error('Error fetching memos:', error);
@@ -224,7 +271,6 @@ app.post('/api/memos', auth, async (req, res) => {
   try {
     const memo = new Memo({ ...req.body, userId: req.userId });
     await memo.save();
-    logger.info(`New memo added for user: ${req.userId}`);
     res.status(201).json(memo);
   } catch (error) {
     logger.error('Error adding memo:', error);
@@ -240,10 +286,8 @@ app.put('/api/memos/:id', auth, async (req, res) => {
       { new: true }
     );
     if (!memo) {
-      logger.warn(`Memo not found for update: ${req.params.id}`);
       return res.status(404).json({ message: 'Memo not found' });
     }
-    logger.info(`Memo updated: ${req.params.id}`);
     res.json(memo);
   } catch (error) {
     logger.error('Error updating memo:', error);
@@ -255,10 +299,8 @@ app.delete('/api/memos/:id', auth, async (req, res) => {
   try {
     const memo = await Memo.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!memo) {
-      logger.warn(`Memo not found for deletion: ${req.params.id}`);
       return res.status(404).json({ message: 'Memo not found' });
     }
-    logger.info(`Memo deleted: ${req.params.id}`);
     res.json({ message: 'Memo deleted successfully' });
   } catch (error) {
     logger.error('Error deleting memo:', error);

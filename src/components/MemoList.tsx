@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo } from '../types';
 
@@ -21,8 +21,10 @@ const MemoList: React.FC<MemoListProps> = ({
   deleteMemo,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-5rem)] gap-4 p-4">
-      <div className="w-full md:w-1/3 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-5rem)] gap-4">
+      {/* 메모 목록 (모바일에서는 activeMemo가 없을 때만 표시) */}
+      <div className={`w-full md:w-1/3 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden 
+        ${activeMemo ? 'hidden md:block' : 'block'}`}>
         <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-800">메모 목록</h2>
@@ -62,17 +64,25 @@ const MemoList: React.FC<MemoListProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* 메모 편집 영역 (모바일에서는 activeMemo가 있을 때만 전체 화면으로 표시) */}
+      <div className={`flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden
+        ${activeMemo ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'hidden md:block'}`}>
         {activeMemo ? (
           <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 flex items-center gap-4">
+              <button
+                onClick={() => setActiveMemo(null)}
+                className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <input
                 type="text"
                 value={activeMemo.title}
                 onChange={(e) =>
                   updateMemo(activeMemo._id, e.target.value, activeMemo.content)
                 }
-                className="w-full text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-0"
+                className="flex-1 text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-0"
                 placeholder="제목을 입력하세요"
               />
             </div>
@@ -86,7 +96,10 @@ const MemoList: React.FC<MemoListProps> = ({
             />
             <div className="p-4 border-t border-gray-200">
               <button
-                onClick={() => deleteMemo(activeMemo._id)}
+                onClick={() => {
+                  deleteMemo(activeMemo._id);
+                  setActiveMemo(null);
+                }}
                 className="px-4 py-2 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 <Trash2 className="w-4 h-4 inline-block mr-2" />

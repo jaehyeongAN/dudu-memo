@@ -375,15 +375,15 @@ function App() {
       if (stats.total === 0) return null;
   
       return (
-        <div className="text-xs mt-1">
+        <div className="flex flex-col gap-0.5 mt-1">
           {stats.remaining > 0 && (
-            <div className="text-indigo-600">
-              • {stats.remaining}개 남음
+            <div className="flex items-center justify-center text-xs px-1 py-0.5 bg-indigo-100 text-indigo-700 rounded">
+              💪 {stats.remaining}
             </div>
           )}
           {stats.completed > 0 && (
-            <div className="text-green-600">
-              • {stats.completed}개 완료
+            <div className="flex items-center justify-center text-xs px-1 py-0.5 bg-green-100 text-green-700 rounded">
+              ✅ {stats.completed}
             </div>
           )}
         </div>

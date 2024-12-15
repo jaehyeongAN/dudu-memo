@@ -1,5 +1,5 @@
-import React from 'react';
-import { PlusCircle, Trash2, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { PlusCircle, Trash2, CheckCircle, ChevronDown } from 'lucide-react';
 import { BacklogTodo } from '../types';
 
 interface BacklogListProps {
@@ -21,17 +21,17 @@ interface BacklogListProps {
 const priorityConfig = {
   high: {
     label: '높음',
-    color: 'bg-red-50 text-red-700',
+    color: 'bg-red-50 text-red-700 hover:bg-red-100',
     dotColor: 'bg-red-500'
   },
   medium: {
     label: '중간',
-    color: 'bg-yellow-50 text-yellow-700',
+    color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
     dotColor: 'bg-yellow-500'
   },
   low: {
     label: '낮음',
-    color: 'bg-blue-50 text-blue-700',
+    color: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
     dotColor: 'bg-blue-500'
   }
 };
@@ -51,6 +51,8 @@ const BacklogList: React.FC<BacklogListProps> = ({
   toggleSubTodo,
   deleteSubTodo,
 }) => {
+  const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
+
   // 완료된 할 일을 맨 아래로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
     if (a.completed === b.completed) {
@@ -63,6 +65,21 @@ const BacklogList: React.FC<BacklogListProps> = ({
     }
     return a.completed ? 1 : -1;
   });
+
+  // 우선순위 드롭다운 외부 클릭 감지
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openPriorityId) {
+        const dropdown = document.getElementById(`priority-dropdown-${openPriorityId}`);
+        if (dropdown && !dropdown.contains(event.target as Node)) {
+          setOpenPriorityId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openPriorityId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -118,38 +135,34 @@ const BacklogList: React.FC<BacklogListProps> = ({
                 />
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {!todo.completed && (
-                    <div className="relative">
+                    <div className="relative" id={`priority-dropdown-${todo._id}`}>
                       <button
-                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${priorityConfig[todo.priority].color}`}
-                        onClick={(e) => {
-                          const select = e.currentTarget.nextElementSibling as HTMLElement;
-                          select.style.display = select.style.display === 'none' ? 'block' : 'none';
-                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
+                        onClick={() => setOpenPriorityId(openPriorityId === todo._id ? null : todo._id)}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
+                        <span className={`w-2 h-2 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
                         {priorityConfig[todo.priority].label}
+                        <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
                       </button>
-                      <div
-                        className="absolute right-0 mt-1 w-24 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
-                        style={{ display: 'none' }}
-                      >
-                        {Object.entries(priorityConfig).map(([key, config]) => (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
-                              const dropdown = document.activeElement?.nextElementSibling as HTMLElement;
-                              if (dropdown) dropdown.style.display = 'none';
-                            }}
-                            className={`w-full px-3 py-1.5 text-left text-xs sm:text-sm hover:bg-gray-50 flex items-center gap-1.5 ${
-                              todo.priority === key ? 'bg-gray-50' : ''
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-                            {config.label}
-                          </button>
-                        ))}
-                      </div>
+                      {openPriorityId === todo._id && (
+                        <div className="absolute right-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                          {Object.entries(priorityConfig).map(([key, config]) => (
+                            <button
+                              key={key}
+                              onClick={() => {
+                                updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
+                                setOpenPriorityId(null);
+                              }}
+                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2 ${
+                                todo.priority === key ? 'bg-gray-50 font-medium' : ''
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+                              {config.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                   <button

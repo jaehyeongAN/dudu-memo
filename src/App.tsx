@@ -254,6 +254,23 @@ function App() {
     }, 500);
   };
 
+  const updateTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
+    try {
+      const todoToUpdate = todos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const response = await api.put(`/todos/${id}`, {
+          ...todoToUpdate,
+          priority,
+        });
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating todo priority:', error);
+    }
+  };
+
   // Backlog functions
   const addBacklogTodo = async () => {
     if (newTodo.trim() !== '') {
@@ -769,6 +786,7 @@ function App() {
                   deleteTodo={deleteTodo}
                   updateTodoText={updateTodoText}
                   updateTodoDescription={updateTodoDescription}
+                  updateTodoPriority={updateTodoPriority}
                   addSubTodo={addSubTodo}
                   updateSubTodo={updateSubTodo}
                   toggleSubTodo={toggleSubTodo}

@@ -11,6 +11,7 @@ export interface Todo {
   date: Date;
   description: string;
   subTodos: SubTodo[];
+  priority: 'high' | 'medium' | 'low';
 }
 
 export interface BacklogTodo {

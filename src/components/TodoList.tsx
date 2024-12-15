@@ -1,5 +1,5 @@
-import React from 'react';
-import { PlusCircle, Trash2, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { PlusCircle, Trash2, CheckCircle, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Todo } from '../types';
 
@@ -13,11 +13,30 @@ interface TodoListProps {
   deleteTodo: (id: string) => void;
   updateTodoText: (id: string, text: string) => void;
   updateTodoDescription: (id: string, description: string) => void;
+  updateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => void;
   addSubTodo: (todoId: string) => void;
   updateSubTodo: (todoId: string, subTodoId: string, text: string) => void;
   toggleSubTodo: (todoId: string, subTodoId: string) => void;
   deleteSubTodo: (todoId: string, subTodoId: string) => void;
 }
+
+const priorityConfig = {
+  high: {
+    label: '높음',
+    color: 'bg-red-50 text-red-700 hover:bg-red-100',
+    dotColor: 'bg-red-500'
+  },
+  medium: {
+    label: '중간',
+    color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
+    dotColor: 'bg-yellow-500'
+  },
+  low: {
+    label: '낮음',
+    color: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
+    dotColor: 'bg-blue-500'
+  }
+};
 
 const TodoList: React.FC<TodoListProps> = ({
   todos,
@@ -29,21 +48,45 @@ const TodoList: React.FC<TodoListProps> = ({
   deleteTodo,
   updateTodoText,
   updateTodoDescription,
+  updateTodoPriority,
   addSubTodo,
   updateSubTodo,
   toggleSubTodo,
   deleteSubTodo,
 }) => {
+  const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
+
   // 완료된 할 일을 맨 아래로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
-    if (a.completed === b.completed) return 0;
+    if (a.completed === b.completed) {
+      // 완료되지 않은 항목들은 우선순위에 따라 정렬
+      if (!a.completed) {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      return 0;
+    }
     return a.completed ? 1 : -1;
   });
+
+  // 우선순위 드롭다운 외부 클릭 감지
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openPriorityId) {
+        const dropdown = document.getElementById(`priority-dropdown-${openPriorityId}`);
+        if (dropdown && !dropdown.contains(event.target as Node)) {
+          setOpenPriorityId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openPriorityId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 sm:p-6">
-        {/* 날짜 표시 */}
         <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-800">
           {format(selectedDate, 'yyyy. MM. dd')} 할 일
         </h2>
@@ -95,13 +138,46 @@ const TodoList: React.FC<TodoListProps> = ({
                     todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
                   }`}
                 />
-                <button
-                  onClick={() => deleteTodo(todo._id)}
-                  className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
-                  aria-label="할 일 삭제"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!todo.completed && (
+                    <div className="relative" id={`priority-dropdown-${todo._id}`}>
+                      <button
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
+                        onClick={() => setOpenPriorityId(openPriorityId === todo._id ? null : todo._id)}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
+                        {priorityConfig[todo.priority].label}
+                        <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+                      </button>
+                      {openPriorityId === todo._id && (
+                        <div className="absolute right-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                          {Object.entries(priorityConfig).map(([key, config]) => (
+                            <button
+                              key={key}
+                              onClick={() => {
+                                updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
+                                setOpenPriorityId(null);
+                              }}
+                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2 ${
+                                todo.priority === key ? 'bg-gray-50 font-medium' : ''
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+                              {config.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => deleteTodo(todo._id)}
+                    className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
+                    aria-label="할 일 삭제"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* 설명 입력 영역 */}

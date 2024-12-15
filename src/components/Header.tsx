@@ -1,9 +1,9 @@
 import React from 'react';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, ListTodo, StickyNote, Archive } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'todo' | 'memo';
-  setActiveTab: (tab: 'todo' | 'memo') => void;
+  activeTab: 'todo' | 'memo' | 'backlog';
+  setActiveTab: (tab: 'todo' | 'memo' | 'backlog') => void;
   onLogout: () => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
@@ -28,22 +28,35 @@ const Header: React.FC<HeaderProps> = ({
           <nav className="hidden md:flex items-center space-x-4">
             <button
               onClick={() => setActiveTab('todo')}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-all ${
                 activeTab === 'todo'
                   ? 'bg-indigo-100 text-indigo-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
+              <ListTodo className="w-4 h-4 mr-2" />
               할 일
             </button>
             <button
+              onClick={() => setActiveTab('backlog')}
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-all ${
+                activeTab === 'backlog'
+                  ? 'bg-indigo-100 text-indigo-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              백로그
+            </button>
+            <button
               onClick={() => setActiveTab('memo')}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`inline-flex items-center px-4 py-2 rounded-lg transition-all ${
                 activeTab === 'memo'
                   ? 'bg-indigo-100 text-indigo-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
+              <StickyNote className="w-4 h-4 mr-2" />
               메모
             </button>
             <button
@@ -74,25 +87,41 @@ const Header: React.FC<HeaderProps> = ({
                 setActiveTab('todo');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full px-4 py-2 rounded-lg text-left transition-all ${
+              className={`w-full inline-flex items-center px-4 py-2 rounded-lg text-left transition-all ${
                 activeTab === 'todo'
                   ? 'bg-indigo-100 text-indigo-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
+              <ListTodo className="w-4 h-4 mr-2" />
               할 일
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('backlog');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full inline-flex items-center px-4 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'backlog'
+                  ? 'bg-indigo-100 text-indigo-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              백로그
             </button>
             <button
               onClick={() => {
                 setActiveTab('memo');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full px-4 py-2 rounded-lg text-left transition-all ${
+              className={`w-full inline-flex items-center px-4 py-2 rounded-lg text-left transition-all ${
                 activeTab === 'memo'
                   ? 'bg-indigo-100 text-indigo-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
+              <StickyNote className="w-4 h-4 mr-2" />
               메모
             </button>
             <button

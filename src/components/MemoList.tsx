@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, ArrowLeft, Tag, X } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
 import CategoryManager from './CategoryManager';
@@ -34,6 +34,8 @@ const MemoList: React.FC<MemoListProps> = ({
   onSelectCategory,
 }) => {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [selectedMemos, setSelectedMemos] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const filteredMemos = selectedCategoryId
     ? memos.filter(memo => memo.categoryId === selectedCategoryId)
@@ -43,10 +45,46 @@ const MemoList: React.FC<MemoListProps> = ({
     return categories.find(cat => cat._id === categoryId);
   };
 
+  const handleMemoClick = (memo: Memo, e: React.MouseEvent) => {
+    if (isSelectionMode) {
+      e.preventDefault();
+      const newSelectedMemos = new Set(selectedMemos);
+      if (selectedMemos.has(memo._id)) {
+        newSelectedMemos.delete(memo._id);
+      } else {
+        newSelectedMemos.add(memo._id);
+      }
+      setSelectedMemos(newSelectedMemos);
+      if (newSelectedMemos.size === 0) {
+        setIsSelectionMode(false);
+      }
+    } else {
+      setActiveMemo(memo);
+    }
+  };
+
+  const handleMemoLongPress = (memo: Memo) => {
+    if (!isSelectionMode) {
+      setIsSelectionMode(true);
+      setSelectedMemos(new Set([memo._id]));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const confirmed = window.confirm(`선택한 ${selectedMemos.size}개의 메모를 삭제하시겠습니까?`);
+    if (confirmed) {
+      for (const memoId of selectedMemos) {
+        await deleteMemo(memoId);
+      }
+      setSelectedMemos(new Set());
+      setIsSelectionMode(false);
+    }
+  };
+
   return (
-    <div className="flex h-[calc(100vh-5rem)] gap-4">
-      {/* 메모 목록과 카테고리 컨테이너 */}
-      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'}`}>
+    <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] gap-4">
+      {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
+      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} h-full`}>
         {/* 카테고리 관리자 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <CategoryManager
@@ -60,17 +98,48 @@ const MemoList: React.FC<MemoListProps> = ({
         </div>
 
         {/* 메모 목록 */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200">
+        <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-800">메모 목록</h2>
-              <button
-                onClick={addMemo}
-                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
-                title="새 메모 추가"
-              >
-                <PlusCircle className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-800">메모 목록</h2>
+                {isSelectionMode && (
+                  <span className="text-sm text-gray-500">
+                    {selectedMemos.size}개 선택됨
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isSelectionMode ? (
+                  <>
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      title="선택한 메모 삭제"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsSelectionMode(false);
+                        setSelectedMemos(new Set());
+                      }}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                      title="선택 모드 종료"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={addMemo}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                    title="새 메모 추가"
+                  >
+                    <PlusCircle className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -78,35 +147,56 @@ const MemoList: React.FC<MemoListProps> = ({
               {filteredMemos.map((memo) => (
                 <li
                   key={memo._id}
-                  onClick={() => setActiveMemo(memo)}
-                  className={`p-4 cursor-pointer transition-colors ${
-                    activeMemo?._id === memo._id
+                  onClick={(e) => handleMemoClick(memo, e)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    handleMemoLongPress(memo);
+                  }}
+                  className={`p-4 cursor-pointer transition-colors relative ${
+                    activeMemo?._id === memo._id && !isSelectionMode
                       ? 'bg-indigo-50'
                       : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900 truncate flex-grow">
-                      {memo.title || '제목 없음'}
-                    </h3>
-                    {memo.categoryId && (
-                      <span
-                        className="px-2 py-1 text-xs rounded-full"
-                        style={{
-                          backgroundColor: getCategory(memo.categoryId)?.color + '20',
-                          color: getCategory(memo.categoryId)?.color
-                        }}
+                    {isSelectionMode && (
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          selectedMemos.has(memo._id)
+                            ? 'border-indigo-500 bg-indigo-500 text-white'
+                            : 'border-gray-300'
+                        }`}
                       >
-                        {getCategory(memo.categoryId)?.name}
-                      </span>
+                        {selectedMemos.has(memo._id) && (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                      </div>
                     )}
+                    <div className="flex-grow">
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {memo.title || '제목 없음'}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate mt-1">
+                        {memo.content || '내용 없음'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className="text-xs text-gray-400">
+                          {format(new Date(memo.lastEdited), 'yyyy-MM-dd HH:mm')}
+                        </p>
+                        {memo.categoryId && (
+                          <span
+                            className="px-2 py-1 text-xs rounded-full whitespace-nowrap"
+                            style={{
+                              backgroundColor: getCategory(memo.categoryId)?.color + '20',
+                              color: getCategory(memo.categoryId)?.color
+                            }}
+                          >
+                            {getCategory(memo.categoryId)?.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 truncate mt-1">
-                    {memo.content || '내용 없음'}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {format(new Date(memo.lastEdited), 'yyyy-MM-dd HH:mm')}
-                  </p>
                 </li>
               ))}
             </ul>

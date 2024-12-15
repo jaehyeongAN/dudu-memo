@@ -1,11 +1,9 @@
 import React from 'react';
 import { PlusCircle, Trash2, CheckCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { Todo } from '../types';
+import { BacklogTodo } from '../types';
 
-interface TodoListProps {
-  todos: Todo[];
-  selectedDate: Date;
+interface BacklogListProps {
+  todos: BacklogTodo[];
   newTodo: string;
   setNewTodo: (value: string) => void;
   addTodo: () => void;
@@ -13,15 +11,33 @@ interface TodoListProps {
   deleteTodo: (id: string) => void;
   updateTodoText: (id: string, text: string) => void;
   updateTodoDescription: (id: string, description: string) => void;
+  updateTodoPriority: (id: string, priority: 'high' | 'medium' | 'low') => void;
   addSubTodo: (todoId: string) => void;
   updateSubTodo: (todoId: string, subTodoId: string, text: string) => void;
   toggleSubTodo: (todoId: string, subTodoId: string) => void;
   deleteSubTodo: (todoId: string, subTodoId: string) => void;
 }
 
-const TodoList: React.FC<TodoListProps> = ({
+const priorityConfig = {
+  high: {
+    label: '높음',
+    color: 'bg-red-50 text-red-700',
+    dotColor: 'bg-red-500'
+  },
+  medium: {
+    label: '중간',
+    color: 'bg-yellow-50 text-yellow-700',
+    dotColor: 'bg-yellow-500'
+  },
+  low: {
+    label: '낮음',
+    color: 'bg-blue-50 text-blue-700',
+    dotColor: 'bg-blue-500'
+  }
+};
+
+const BacklogList: React.FC<BacklogListProps> = ({
   todos,
-  selectedDate,
   newTodo,
   setNewTodo,
   addTodo,
@@ -29,6 +45,7 @@ const TodoList: React.FC<TodoListProps> = ({
   deleteTodo,
   updateTodoText,
   updateTodoDescription,
+  updateTodoPriority,
   addSubTodo,
   updateSubTodo,
   toggleSubTodo,
@@ -36,17 +53,21 @@ const TodoList: React.FC<TodoListProps> = ({
 }) => {
   // 완료된 할 일을 맨 아래로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
-    if (a.completed === b.completed) return 0;
+    if (a.completed === b.completed) {
+      // 완료되지 않은 항목들은 우선순위에 따라 정렬
+      if (!a.completed) {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      return 0;
+    }
     return a.completed ? 1 : -1;
   });
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-4 sm:p-6">
-        {/* 날짜 표시 */}
-        <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-800">
-          {format(selectedDate, 'yyyy. MM. dd')} 할 일
-        </h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-800">백로그</h2>
         
         {/* 할 일 추가 입력 영역 */}
         <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -69,7 +90,7 @@ const TodoList: React.FC<TodoListProps> = ({
         </div>
 
         {/* 할 일 목록 */}
-        <div className="space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto">
+        <div className="space-y-3 max-h-[calc(100vh-14rem)] overflow-y-auto">
           {sortedTodos.map((todo) => (
             <div
               key={todo._id}
@@ -95,13 +116,50 @@ const TodoList: React.FC<TodoListProps> = ({
                     todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
                   }`}
                 />
-                <button
-                  onClick={() => deleteTodo(todo._id)}
-                  className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
-                  aria-label="할 일 삭제"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!todo.completed && (
+                    <div className="relative">
+                      <button
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${priorityConfig[todo.priority].color}`}
+                        onClick={(e) => {
+                          const select = e.currentTarget.nextElementSibling as HTMLElement;
+                          select.style.display = select.style.display === 'none' ? 'block' : 'none';
+                        }}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
+                        {priorityConfig[todo.priority].label}
+                      </button>
+                      <div
+                        className="absolute right-0 mt-1 w-24 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                        style={{ display: 'none' }}
+                      >
+                        {Object.entries(priorityConfig).map(([key, config]) => (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
+                              const dropdown = document.activeElement?.nextElementSibling as HTMLElement;
+                              if (dropdown) dropdown.style.display = 'none';
+                            }}
+                            className={`w-full px-3 py-1.5 text-left text-xs sm:text-sm hover:bg-gray-50 flex items-center gap-1.5 ${
+                              todo.priority === key ? 'bg-gray-50' : ''
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
+                            {config.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => deleteTodo(todo._id)}
+                    className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
+                    aria-label="할 일 삭제"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* 설명 입력 영역 */}
@@ -155,7 +213,7 @@ const TodoList: React.FC<TodoListProps> = ({
               </button>
             </div>
           ))}
-          
+
           {/* 할 일이 없을 때 메시지 */}
           {todos.length === 0 && (
             <div className="text-center py-8">
@@ -170,4 +228,4 @@ const TodoList: React.FC<TodoListProps> = ({
   );
 };
 
-export default TodoList;
+export default BacklogList;

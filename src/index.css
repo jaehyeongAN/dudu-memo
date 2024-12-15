@@ -32,7 +32,7 @@ body {
 
 .react-calendar__tile {
   @apply p-2 text-sm relative;
-  min-height: 80px; /* 높이 증가 */
+  min-height: 80px;
 }
 
 .react-calendar__tile:enabled:hover,

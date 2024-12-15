@@ -13,6 +13,15 @@ export interface Todo {
   subTodos: SubTodo[];
 }
 
+export interface BacklogTodo {
+  _id: string;
+  text: string;
+  completed: boolean;
+  description: string;
+  subTodos: SubTodo[];
+  priority: 'high' | 'medium' | 'low';
+}
+
 export interface Category {
   _id: string;
   name: string;
@@ -24,5 +33,5 @@ export interface Memo {
   title: string;
   content: string;
   lastEdited: Date;
-  categoryId?: string; // 카테고리 ID 추가
+  categoryId?: string;
 }

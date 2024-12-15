@@ -6,15 +6,18 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Header from './components/Header';
+import BottomNavigation from './components/BottomNavigation';
 import TodoList from './components/TodoList';
+import BacklogList from './components/BacklogList';
 import MemoList from './components/MemoList';
 import api from './api';
-import { Todo, Memo, Category } from './types';
+import { Todo, Memo, Category, BacklogTodo } from './types';
 import { getTodoStats } from './utils/todoStats';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'todo' | 'memo'>('todo');
+  const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [backlogTodos, setBacklogTodos] = useState<BacklogTodo[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -40,6 +43,15 @@ function App() {
       );
     } catch (error) {
       console.error('Error fetching todos:', error);
+    }
+  }, []);
+
+  const fetchBacklogTodos = useCallback(async () => {
+    try {
+      const response = await api.get('/backlog');
+      setBacklogTodos(response.data);
+    } catch (error) {
+      console.error('Error fetching backlog todos:', error);
     }
   }, []);
 
@@ -72,10 +84,11 @@ function App() {
     if (token) {
       setIsLoggedIn(true);
       fetchTodos();
+      fetchBacklogTodos();
       fetchMemos();
       fetchCategories();
     }
-  }, [fetchTodos, fetchMemos, fetchCategories]);
+  }, [fetchTodos, fetchBacklogTodos, fetchMemos, fetchCategories]);
 
   const handleLogin = async (email: string, password: string) => {
     try {
@@ -83,6 +96,7 @@ function App() {
       localStorage.setItem('token', response.data.token);
       setIsLoggedIn(true);
       fetchTodos();
+      fetchBacklogTodos();
       fetchMemos();
       fetchCategories();
     } catch (error) {
@@ -111,6 +125,7 @@ function App() {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
     setTodos([]);
+    setBacklogTodos([]);
     setMemos([]);
     setCategories([]);
   };
@@ -239,6 +254,110 @@ function App() {
     }, 500);
   };
 
+  // Backlog functions
+  const addBacklogTodo = async () => {
+    if (newTodo.trim() !== '') {
+      try {
+        const response = await api.post('/backlog', {
+          text: newTodo,
+          completed: false,
+          description: '',
+          subTodos: [],
+          priority: 'medium',
+        });
+        setBacklogTodos((prevTodos) => [...prevTodos, response.data]);
+        setNewTodo('');
+      } catch (error) {
+        console.error('Error adding backlog todo:', error);
+      }
+    }
+  };
+
+  const toggleBacklogTodo = async (id: string) => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const response = await api.put(`/backlog/${id}`, {
+          ...todoToUpdate,
+          completed: !todoToUpdate.completed,
+        });
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating backlog todo:', error);
+    }
+  };
+
+  const deleteBacklogTodo = async (id: string) => {
+    try {
+      await api.delete(`/backlog/${id}`);
+      setBacklogTodos((prevTodos) => prevTodos.filter((todo) => todo._id !== id));
+    } catch (error) {
+      console.error('Error deleting backlog todo:', error);
+    }
+  };
+
+  const updateBacklogTodoText = (id: string, text: string) => {
+    setBacklogTodos((prevTodos) =>
+      prevTodos.map((todo) => (todo._id === id ? { ...todo, text } : todo))
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
+        if (todoToUpdate) {
+          await api.put(`/backlog/${id}`, { ...todoToUpdate, text });
+        }
+      } catch (error) {
+        console.error('Error updating backlog todo text:', error);
+      }
+    }, 500);
+  };
+
+  const updateBacklogTodoDescription = (id: string, description: string) => {
+    setBacklogTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo._id === id ? { ...todo, description } : todo
+      )
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
+        if (todoToUpdate) {
+          await api.put(`/backlog/${id}`, { ...todoToUpdate, description });
+        }
+      } catch (error) {
+        console.error('Error updating backlog todo description:', error);
+      }
+    }, 500);
+  };
+
+  const updateBacklogTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const response = await api.put(`/backlog/${id}`, {
+          ...todoToUpdate,
+          priority,
+        });
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating backlog todo priority:', error);
+    }
+  };
+
   // SubTodo functions
   const addSubTodo = async (todoId: string) => {
     try {
@@ -263,6 +382,32 @@ function App() {
       }
     } catch (error) {
       console.error('Error adding sub-todo:', error);
+    }
+  };
+
+  const addBacklogSubTodo = async (todoId: string) => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === todoId);
+      if (todoToUpdate) {
+        const newSubTodo = {
+          _id: new mongoose.Types.ObjectId().toString(),
+          text: '',
+          completed: false,
+        };
+        await api.put(`/backlog/${todoId}`, {
+          ...todoToUpdate,
+          subTodos: [...todoToUpdate.subTodos, newSubTodo],
+        });
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === todoId
+              ? { ...todo, subTodos: [...todo.subTodos, newSubTodo] }
+              : todo
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error adding backlog sub-todo:', error);
     }
   };
 
@@ -301,6 +446,41 @@ function App() {
     }, 500);
   };
 
+  const updateBacklogSubTodo = (todoId: string, subTodoId: string, text: string) => {
+    setBacklogTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo._id === todoId
+          ? {
+              ...todo,
+              subTodos: todo.subTodos.map((subTodo) =>
+                subTodo._id === subTodoId ? { ...subTodo, text } : subTodo
+              ),
+            }
+          : todo
+      )
+    );
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const todoToUpdate = backlogTodos.find((todo) => todo._id === todoId);
+        if (todoToUpdate) {
+          const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>
+            subTodo._id === subTodoId ? { ...subTodo, text } : subTodo
+          );
+          await api.put(`/backlog/${todoId}`, {
+            ...todoToUpdate,
+            subTodos: updatedSubTodos,
+          });
+        }
+      } catch (error) {
+        console.error('Error updating backlog sub-todo:', error);
+      }
+    }, 500);
+  };
+
   const toggleSubTodo = async (todoId: string, subTodoId: string) => {
     try {
       const todoToUpdate = todos.find((todo) => todo._id === todoId);
@@ -323,6 +503,28 @@ function App() {
     }
   };
 
+  const toggleBacklogSubTodo = async (todoId: string, subTodoId: string) => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === todoId);
+      if (todoToUpdate) {
+        const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>
+          subTodo._id === subTodoId
+            ? { ...subTodo, completed: !subTodo.completed }
+            : subTodo
+        );
+        const response = await api.put(`/backlog/${todoId}`, {
+          ...todoToUpdate,
+          subTodos: updatedSubTodos,
+        });
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo._id === todoId ? response.data : todo))
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling backlog sub-todo:', error);
+    }
+  };
+
   const deleteSubTodo = async (todoId: string, subTodoId: string) => {
     try {
       const todoToUpdate = todos.find((todo) => todo._id === todoId);
@@ -342,6 +544,28 @@ function App() {
       }
     } catch (error) {
       console.error('Error deleting sub-todo:', error);
+    }
+  };
+
+  const deleteBacklogSubTodo = async (todoId: string, subTodoId: string) => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === todoId);
+      if (todoToUpdate) {
+        const updatedSubTodos = todoToUpdate.subTodos.filter(
+          (subTodo) => subTodo._id !== subTodoId
+        );
+        await api.put(`/backlog/${todoId}`, {
+          ...todoToUpdate,
+          subTodos: updatedSubTodos,
+        });
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === todoId ? { ...todo, subTodos: updatedSubTodos } : todo
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error deleting backlog sub-todo:', error);
     }
   };
 
@@ -445,15 +669,36 @@ function App() {
       if (stats.total === 0) return null;
   
       return (
-        <div className="flex flex-col gap-0.5 mt-1">
-          {stats.remaining > 0 && (
-            <div className="flex items-center justify-center text-xs px-1 py-0.5 bg-indigo-100 text-indigo-700 rounded">
-              💪 {stats.remaining}
-            </div>
-          )}
-          {stats.completed > 0 && (
-            <div className="flex items-center justify-center text-xs px-1 py-0.5 bg-green-100 text -green-700 rounded">
-              ✅ {stats.completed}
+        <div className="flex flex-col items-center gap-1 mt-1">
+          <div className="w-full flex flex-col items-center gap-1">
+            {stats.remaining > 0 && (
+              <div 
+                className="flex items-center gap-1 text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium w-fit"
+                title={`남은 할 일 ${stats.remaining}개`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                {stats.remaining}
+              </div>
+            )}
+            {stats.completed > 0 && (
+              <div 
+                className="flex items-center gap-1 text-xs px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-medium w-fit"
+                title={`완료된 할 일 ${stats.completed}개`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                {stats.completed}
+              </div>
+            )}
+          </div>
+          {/* Progress bar */}
+          {stats.total > 0 && (
+            <div className="w-[80%] h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-400 transition-all duration-300"
+                style={{ 
+                  width: `${(stats.completed / stats.total) * 100}%`
+                }}
+              />
             </div>
           )}
         </div>
@@ -472,7 +717,7 @@ function App() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <main className="pt-16">
+      <main className="pt-16 pb-20 md:pb-6">
         {activeTab === 'todo' ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex flex-col lg:flex-row gap-8">
@@ -532,6 +777,24 @@ function App() {
               </div>
             </div>
           </div>
+        ) : activeTab === 'backlog' ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <BacklogList
+              todos={backlogTodos}
+              newTodo={newTodo}
+              setNewTodo={setNewTodo}
+              addTodo={addBacklogTodo}
+              toggleTodo={toggleBacklogTodo}
+              deleteTodo={deleteBacklogTodo}
+              updateTodoText={updateBacklogTodoText}
+              updateTodoDescription={updateBacklogTodoDescription}
+              updateTodoPriority={updateBacklogTodoPriority}
+              addSubTodo={addBacklogSubTodo}
+              updateSubTodo={updateBacklogSubTodo}
+              toggleSubTodo={toggleBacklogSubTodo}
+              deleteSubTodo={deleteBacklogSubTodo}
+            />
+          </div>
         ) : (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <MemoList
@@ -551,6 +814,8 @@ function App() {
           </div>
         )}
       </main>
+
+      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab } />
     </div>
   );
 }

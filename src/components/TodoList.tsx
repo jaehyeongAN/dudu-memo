@@ -112,7 +112,7 @@ const TodoList: React.FC<TodoListProps> = ({
         </div>
 
         {/* 할 일 목록 */}
-        <div className="space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto">
+        <div className="space-y-3">
           {sortedTodos.map((todo) => (
             <div
               key={todo._id}
@@ -190,31 +190,38 @@ const TodoList: React.FC<TodoListProps> = ({
               />
 
               {/* 하위 할 일 목록 */}
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-3 space-y-2.5">
                 {todo.subTodos.map((subTodo) => (
-                  <li key={subTodo._id} className="flex items-center gap-2 pl-4 sm:pl-6">
+                  <li key={subTodo._id} className="flex items-start gap-2 pl-6 sm:pl-8 relative">
+                    {/* 들여쓰기 라인 */}
+                    <div className="absolute left-2 sm:left-3 top-0 bottom-0 w-px bg-gray-200" />
+                    
                     <button
                       onClick={() => toggleSubTodo(todo._id, subTodo._id)}
-                      className={`flex-shrink-0 focus:outline-none ${
+                      className={`flex-shrink-0 focus:outline-none mt-0.5 ${
                         subTodo.completed ? 'text-green-500' : 'text-gray-400'
-                      }`}
+                      } hover:scale-110 transition-transform`}
                     >
                       <CheckCircle className="w-4 h-4" />
                     </button>
-                    <input
-                      type="text"
-                      value={subTodo.text}
-                      onChange={(e) =>
-                        updateSubTodo(todo._id, subTodo._id, e.target.value)
-                      }
-                      className={`flex-grow min-w-0 bg-transparent text-xs sm:text-sm focus:outline-none ${
-                        subTodo.completed ? 'line-through text-gray-500' : 'text-gray-700'
-                      }`}
-                      placeholder="하위 할 일..."
-                    />
+                    
+                    <div className="flex-grow min-w-0">
+                      <input
+                        type="text"
+                        value={subTodo.text}
+                        onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
+                        className={`w-full bg-transparent text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 py-0.5 ${
+                          subTodo.completed 
+                            ? 'line-through text-gray-500' 
+                            : 'text-gray-700'
+                        }`}
+                        placeholder="하위 할 일..."
+                      />
+                    </div>
+                    
                     <button
                       onClick={() => deleteSubTodo(todo._id, subTodo._id)}
-                      className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none"
+                      className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform mt-0.5"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -225,9 +232,10 @@ const TodoList: React.FC<TodoListProps> = ({
               {/* 하위 할 일 추가 버튼 */}
               <button
                 onClick={() => addSubTodo(todo._id)}
-                className="mt-2 text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 focus:outline-none"
+                className="mt-2 text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
               >
-                + 하위 할 일 추가
+                <PlusCircle className="w-4 h-4" />
+                하위 할 일 추가
               </button>
             </div>
           ))}

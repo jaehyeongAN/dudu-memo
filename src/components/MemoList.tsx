@@ -37,9 +37,16 @@ const MemoList: React.FC<MemoListProps> = ({
   const [selectedMemos, setSelectedMemos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  const filteredMemos = selectedCategoryId
-    ? memos.filter(memo => memo.categoryId === selectedCategoryId)
-    : memos;
+  // 메모를 마지막 수정 시간 기준으로 정렬
+  const sortedAndFilteredMemos = React.useMemo(() => {
+    const filtered = selectedCategoryId
+      ? memos.filter(memo => memo.categoryId === selectedCategoryId)
+      : memos;
+    
+    return [...filtered].sort((a, b) => {
+      return new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime();
+    });
+  }, [memos, selectedCategoryId]);
 
   const getCategory = (categoryId?: string) => {
     return categories.find(cat => cat._id === categoryId);
@@ -82,9 +89,9 @@ const MemoList: React.FC<MemoListProps> = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] gap-4">
+    <div className="flex flex-col md:flex-row md:h-[calc(100vh-8rem)] gap-4">
       {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
-      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} h-full`}>
+      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
         {/* 카테고리 관리자 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <CategoryManager
@@ -98,7 +105,7 @@ const MemoList: React.FC<MemoListProps> = ({
         </div>
 
         {/* 메모 목록 */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col md:min-h-0">
           <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -142,9 +149,10 @@ const MemoList: React.FC<MemoListProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          {/* 메모 목록 컨테이너: 모바일에서는 스크롤 없음, 데스크톱에서는 스크롤 있음 */}
+          <div className="md:flex-1 md:overflow-y-auto">
             <ul className="divide-y divide-gray-200">
-              {filteredMemos.map((memo) => (
+              {sortedAndFilteredMemos.map((memo) => (
                 <li
                   key={memo._id}
                   onClick={(e) => handleMemoClick(memo, e)}

@@ -303,7 +303,7 @@ const MemoList: React.FC<MemoListProps> = ({
               className="flex-1 p-4 w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0"
               placeholder="내용을 입력하세요..."
             />
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 pb-24 md:pb-4 border-t border-gray-200"> {/* 여기 수정 */}
               <button
                 onClick={() => {
                   deleteMemo(activeMemo._id);

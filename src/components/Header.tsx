@@ -1,27 +1,46 @@
 import React from 'react';
-import { Menu, X, LogOut, ListTodo, StickyNote, Archive } from 'lucide-react';
+import { Menu, X, LogOut, ListTodo, StickyNote, Archive, UserX } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'todo' | 'memo' | 'backlog';
   setActiveTab: (tab: 'todo' | 'memo' | 'backlog') => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
+  workspaceSelector: React.ReactNode;
 }
 
 const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onLogout,
+  onDeleteAccount,
   isMobileMenuOpen,
-  setIsMobileMenuOpen
+  setIsMobileMenuOpen,
+  workspaceSelector
 }) => {
+  const handleDeleteAccount = () => {
+    const confirmed = window.confirm(
+      '정말로 계정을 삭제하시겠습니까?\n\n' +
+      '이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다:\n' +
+      '- 모든 워크스페이스\n' +
+      '- 모든 할 일 및 메모\n' +
+      '- 계정 정보'
+    );
+    
+    if (confirmed) {
+      onDeleteAccount();
+    }
+  };
+
   return (
     <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <span className="text-2xl font-bold text-indigo-600">🦉 DuDu</span>
+            {workspaceSelector}
           </div>
 
           {/* Desktop Navigation */}
@@ -59,9 +78,18 @@ const Header: React.FC<HeaderProps> = ({
               <StickyNote className="w-4 h-4 mr-2" />
               메모
             </button>
+            <div className="h-6 w-px bg-gray-200 mx-2" />
+            <button
+              onClick={handleDeleteAccount}
+              className="inline-flex items-center px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              title="계정 삭제"
+            >
+              <UserX className="w-4 h-4 mr-2" />
+              계정 삭제
+            </button>
             <button
               onClick={onLogout}
-              className="ml-4 inline-flex items-center px-4 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors"
+              className="inline-flex items-center px-4 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors"
             >
               <LogOut className="w-4 h-4 mr-2" />
               로그아웃
@@ -82,6 +110,7 @@ const Header: React.FC<HeaderProps> = ({
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <div className="px-4 py-2 space-y-2">
+            {workspaceSelector}
             <button
               onClick={() => {
                 setActiveTab('todo');
@@ -123,6 +152,17 @@ const Header: React.FC<HeaderProps> = ({
             >
               <StickyNote className="w-4 h-4 mr-2" />
               메모
+            </button>
+            <div className="h-px bg-gray-200 my-2" />
+            <button
+              onClick={() => {
+                handleDeleteAccount();
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full inline-flex items-center px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            >
+              <UserX className="w-4 h-4 mr-2" />
+              계정 삭제
             </button>
             <button
               onClick={onLogout}

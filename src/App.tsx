@@ -10,8 +10,9 @@ import BottomNavigation from './components/BottomNavigation';
 import TodoList from './components/TodoList';
 import BacklogList from './components/BacklogList';
 import MemoList from './components/MemoList';
+import WorkspaceSelector from './components/WorkspaceSelector';
 import api from './api';
-import { Todo, Memo, Category, BacklogTodo } from './types';
+import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
 
 function App() {
@@ -28,10 +29,77 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleDeleteAccount = async () => {
+    try {
+      await api.delete('/users/me');
+      handleLogout();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('계정 삭제 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // Fetch workspaces
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      const response = await api.get('/workspaces');
+      setWorkspaces(response.data);
+    } catch (error) {
+      console.error('Error fetching workspaces:', error);
+    }
+  }, []);
+
+  // Workspace functions
+  const handleCreateWorkspace = async (name: string, description: string) => {
+    try {
+      const response = await api.post('/workspaces', { name, description });
+      setWorkspaces(prev => [...prev, response.data]);
+      setCurrentWorkspaceId(response.data._id);
+      await api.put('/users/current-workspace', { workspaceId: response.data._id });
+    } catch (error) {
+      console.error('Error creating workspace:', error);
+    }
+  };
+
+  const handleUpdateWorkspace = async (id: string, name: string, description: string) => {
+    try {
+      const response = await api.put(`/workspaces/${id}`, { name, description });
+      setWorkspaces(prev => prev.map(w => w._id === id ? response.data : w));
+    } catch (error) {
+      console.error('Error updating workspace:', error);
+    }
+  };
+
+  const handleDeleteWorkspace = async (id: string) => {
+    try {
+      await api.delete(`/workspaces/${id}`);
+      setWorkspaces(prev => prev.filter(w => w._id !== id));
+    } catch (error) {
+      console.error('Error deleting workspace:', error);
+    }
+  };
+
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    try {
+      await api.put('/users/current-workspace', { workspaceId });
+      setCurrentWorkspaceId(workspaceId);
+      // 워크스페이스 변경 시 데이터 다시 로드
+      fetchTodos();
+      fetchBacklogTodos();
+      fetchMemos();
+      fetchCategories();
+    } catch (error) {
+      console.error('Error changing workspace:', error);
+    }
+  };
 
   // Fetch data functions
   const fetchTodos = useCallback(async () => {
+    if (!currentWorkspaceId) return;
     try {
       const response = await api.get('/todos');
       setTodos(
@@ -44,18 +112,20 @@ function App() {
     } catch (error) {
       console.error('Error fetching todos:', error);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   const fetchBacklogTodos = useCallback(async () => {
+    if (!currentWorkspaceId) return;
     try {
       const response = await api.get('/backlog');
       setBacklogTodos(response.data);
     } catch (error) {
       console.error('Error fetching backlog todos:', error);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   const fetchMemos = useCallback(async () => {
+    if (!currentWorkspaceId) return;
     try {
       const response = await api.get('/memos');
       setMemos(
@@ -67,38 +137,48 @@ function App() {
     } catch (error) {
       console.error('Error fetching memos:', error);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   const fetchCategories = useCallback(async () => {
+    if (!currentWorkspaceId) return;
     try {
       const response = await api.get('/categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   // Auth functions
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
     if (token) {
       setIsLoggedIn(true);
+      if (savedWorkspaceId) {
+        setCurrentWorkspaceId(savedWorkspaceId);
+      }
+      fetchWorkspaces();
+    }
+  }, [fetchWorkspaces]);
+
+  useEffect(() => {
+    if (currentWorkspaceId) {
+      localStorage.setItem('currentWorkspaceId', currentWorkspaceId);
       fetchTodos();
       fetchBacklogTodos();
       fetchMemos();
       fetchCategories();
     }
-  }, [fetchTodos, fetchBacklogTodos, fetchMemos, fetchCategories]);
+  }, [currentWorkspaceId, fetchTodos, fetchBacklogTodos, fetchMemos, fetchCategories]);
 
   const handleLogin = async (email: string, password: string) => {
     try {
       const response = await api.post('/login', { email, password });
       localStorage.setItem('token', response.data.token);
       setIsLoggedIn(true);
-      fetchTodos();
-      fetchBacklogTodos();
-      fetchMemos();
-      fetchCategories();
+      setCurrentWorkspaceId(response.data.currentWorkspaceId);
+      fetchWorkspaces();
     } catch (error) {
       console.error('Login error:', error);
       alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
@@ -123,11 +203,14 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('currentWorkspaceId');
     setIsLoggedIn(false);
     setTodos([]);
     setBacklogTodos([]);
     setMemos([]);
     setCategories([]);
+    setWorkspaces([]);
+    setCurrentWorkspaceId('');
   };
 
   // Category functions
@@ -730,8 +813,19 @@ function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        workspaceSelector={
+          <WorkspaceSelector
+            workspaces={workspaces}
+            currentWorkspaceId={currentWorkspaceId}
+            onWorkspaceChange={handleWorkspaceChange}
+            onCreateWorkspace={handleCreateWorkspace}
+            onUpdateWorkspace={handleUpdateWorkspace}
+            onDeleteWorkspace={handleDeleteWorkspace}
+          />
+        }
       />
 
       <main className="pt-16 pb-20 md:pb-6 min-h-screen">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { PlusCircle, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
@@ -36,6 +36,9 @@ const MemoList: React.FC<MemoListProps> = ({
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedMemos, setSelectedMemos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [localMemoContent, setLocalMemoContent] = useState('');
+  const [localMemoTitle, setLocalMemoTitle] = useState('');
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
 
   // 메모를 마지막 수정 시간 기준으로 정렬
   const sortedAndFilteredMemos = React.useMemo(() => {
@@ -50,6 +53,39 @@ const MemoList: React.FC<MemoListProps> = ({
 
   const getCategory = (categoryId?: string) => {
     return categories.find(cat => cat._id === categoryId);
+  };
+
+  // 활성 메모가 변경될 때 로컬 상태 업데이트
+  React.useEffect(() => {
+    if (activeMemo) {
+      setLocalMemoTitle(activeMemo.title);
+      setLocalMemoContent(activeMemo.content);
+    } else {
+      setLocalMemoTitle('');
+      setLocalMemoContent('');
+    }
+  }, [activeMemo]);
+
+  const debouncedUpdate = useCallback((id: string, title: string, content: string, categoryId?: string) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      updateMemo(id, title, content, categoryId);
+    }, 500);
+  }, [updateMemo]);
+
+  const handleTitleChange = (title: string) => {
+    if (!activeMemo) return;
+    setLocalMemoTitle(title);
+    debouncedUpdate(activeMemo._id, title, localMemoContent, activeMemo.categoryId);
+  };
+
+  const handleContentChange = (content: string) => {
+    if (!activeMemo) return;
+    setLocalMemoContent(content);
+    debouncedUpdate(activeMemo._id, localMemoTitle, content, activeMemo.categoryId);
   };
 
   const handleMemoClick = (memo: Memo, e: React.MouseEvent) => {
@@ -149,7 +185,7 @@ const MemoList: React.FC<MemoListProps> = ({
               </div>
             </div>
           </div>
-          {/* 메모 목록 컨테이너: 모바일에서는 스크롤 없음, 데스크톱에서는 스크롤 있음 */}
+          {/* 메모 목록 컨테이너 */}
           <div className="md:flex-1 md:overflow-y-auto">
             <ul className="divide-y divide-gray-200">
               {sortedAndFilteredMemos.map((memo) => (
@@ -227,10 +263,8 @@ const MemoList: React.FC<MemoListProps> = ({
                 </button>
                 <input
                   type="text"
-                  value={activeMemo.title}
-                  onChange={(e) =>
-                    updateMemo(activeMemo._id, e.target.value, activeMemo.content, activeMemo.categoryId)
-                  }
+                  value={localMemoTitle}
+                  onChange={(e) => handleTitleChange(e.target.value)}
                   className="flex-1 text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-0"
                   placeholder="제목을 입력하세요"
                 />
@@ -266,7 +300,7 @@ const MemoList: React.FC<MemoListProps> = ({
                         </div>
                         <button
                           onClick={() => {
-                            updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, undefined);
+                            updateMemo(activeMemo._id, localMemoTitle, localMemoContent, undefined);
                             setShowCategoryDropdown(false);
                           }}
                           className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100"
@@ -277,7 +311,7 @@ const MemoList: React.FC<MemoListProps> = ({
                           <button
                             key={category._id}
                             onClick={() => {
-                              updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, category._id);
+                              updateMemo(activeMemo._id, localMemoTitle, localMemoContent, category._id);
                               setShowCategoryDropdown(false);
                             }}
                             className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
@@ -296,14 +330,12 @@ const MemoList: React.FC<MemoListProps> = ({
               </div>
             </div>
             <textarea
-              value={activeMemo.content}
-              onChange={(e) =>
-                updateMemo(activeMemo._id, activeMemo.title, e.target.value, activeMemo.categoryId)
-              }
+              value={localMemoContent}
+              onChange={(e) => handleContentChange(e.target.value)}
               className="flex-1 p-4 w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0"
               placeholder="내용을 입력하세요..."
             />
-            <div className="p-4 pb-24 md:pb-4 border-t border-gray-200"> {/* 여기 수정 */}
+            <div className="p-4 pb-24 md:pb-4 border-t border-gray-200">
               <button
                 onClick={() => {
                   deleteMemo(activeMemo._id);

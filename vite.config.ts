@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'DuDu Memo',
         short_name: 'DuDu',
-        description: '할 일과 메모를 관리하는 웹 애플리케이션',
+        description: '할 일과 메모를 관리하는 워크스페이스',
         theme_color: '#4f46e5',
         icons: [
           {
@@ -25,6 +25,10 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        sourcemap: true
       }
     })
   ],

@@ -53,17 +53,17 @@ DuDu Memo는 할 일과 메모를 관리할 수 있는 웹 애플리케이션입
    PORT=5001
    ```
 
-4. 개발 모드로 실행:
+4. 의존성 설치 및 빌드 :
+   ```
+   npm install
+   npm run build
+   npm run dev
+   ```
+
+5. 앱 실행:
    ```
    npm run dev
    ```
 
-5. 프로덕션 빌드 및 실행:
-   ```
-   npm run build
-   npm start
-   ```
-
 ## 라이선스
-
 이 프로젝트는 MIT 라이선스 하에 있습니다.

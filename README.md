@@ -57,7 +57,6 @@ DuDu Memo는 할 일과 메모를 관리할 수 있는 웹 애플리케이션입
    ```
    npm install
    npm run build
-   npm run dev
    ```
 
 5. 앱 실행:

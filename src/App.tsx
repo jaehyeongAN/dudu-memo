@@ -6,11 +6,12 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Header from './components/Header';
-import BottomNavigation from './components/BottomNavigation';
 import TodoList from './components/TodoList';
 import BacklogList from './components/BacklogList';
 import MemoList from './components/MemoList';
+import BottomNavigation from './components/BottomNavigation';
 import WorkspaceSelector from './components/WorkspaceSelector';
+import InstallPWA from './components/InstallPWA';
 import api from './api';
 import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
@@ -928,6 +929,7 @@ function App() {
       </main>
 
       <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab } />
+      <InstallPWA />
     </div>
   );
 }

@@ -90,11 +90,24 @@
       "label": "Todo2 screenshot"
     },
     {
+      "src": "screenshots/mobile-backlog.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Backlog screenshot"
+    },
+    {
       "src": "screenshots/mobile-memo.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "Todo2 screenshot"
+      "label": "Memo screenshot"
+    },
+    {
+      "src": "screenshots/mobile-workspace.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Workspace screenshot"
     }
+
   ],
   "categories": ["productivity", "utilities"],
   "prefer_related_applications": false,

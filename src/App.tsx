@@ -713,21 +713,7 @@ function App() {
     
     debounceTimer.current = setTimeout(async () => {
       try {
-        const response = await api.put(`/memos/${id}`, updatedMemo);
-        // 서버 응답으로 상태 다시 업데이트
-        const serverUpdatedMemo = response.data;
-        
-        setMemos((prevMemos) =>
-          prevMemos.map((memo) =>
-            memo._id === id ? { ...memo, ...serverUpdatedMemo } : memo
-          )
-        );
-        
-        setActiveMemo((prevMemo) =>
-          prevMemo && prevMemo._id === id
-            ? { ...prevMemo, ...serverUpdatedMemo }
-            : prevMemo
-        );
+        await api.put(`/memos/${id}`, updatedMemo);
       } catch (error) {
         console.error('Error updating memo:', error);
       }

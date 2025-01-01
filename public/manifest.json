@@ -42,22 +42,28 @@
   "screenshots": [
     {
       "src": "screenshots/desktop.png",
-      "sizes": "1679x1257",
+      "sizes": "3574x2080",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Doo!Du 데스크톱 화면"
+      "label": "Desktop screenshot"
     },
     {
-      "src": "screenshots/mobile-todo.png",
-      "sizes": "542x1140",
+      "src": "screenshots/mobile-todo-1.png",
+      "sizes": "1080x1920",
       "type": "image/png",
-      "label": "할 일 관리 화면"
+      "label": "Todo1 screenshot"
+    },
+    {
+      "src": "screenshots/mobile-todo-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Todo2 screenshot"
     },
     {
       "src": "screenshots/mobile-memo.png",
-      "sizes": "542x1140",
+      "sizes": "1080x1920",
       "type": "image/png",
-      "label": "메모 작성 화면"
+      "label": "Todo2 screenshot"
     }
   ],
   "shortcuts": [

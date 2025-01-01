@@ -20,9 +20,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">🦉 DuDu Memo</h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">✔︎ Doo!Du</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            두두메모에서 당신의 할 일과 메모를 관리하세요
+            복잡한 계획은 잊으세요. 단순하게 정리하면 하루가 더 쉬워집니다. ✅
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

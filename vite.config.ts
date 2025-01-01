@@ -9,10 +9,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'DuDu Memo',
-        short_name: 'DuDu',
-        description: '할 일과 메모를 관리하는 워크스페이스',
-        theme_color: '#4f46e5',
+        name: 'Doo!Du',
+        short_name: 'Doo!Du',
+        description: '복잡한 계획은 잊으세요. 단순하게 정리하면 하루가 더 쉬워집니다. ✅',
+        theme_color: '#ffffff',
         icons: [
           {
             src: 'icons/icon-192x192.png',

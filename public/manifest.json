@@ -96,22 +96,6 @@
       "label": "Todo2 screenshot"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "할 일 추가",
-      "short_name": "할 일",
-      "description": "새로운 할 일 추가",
-      "url": "/?tab=todo",
-      "icons": [{ "src": "icons/todo.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "메모 작성",
-      "short_name": "메모",
-      "description": "새로운 메모 작성",
-      "url": "/?tab=memo",
-      "icons": [{ "src": "icons/memo.png", "sizes": "192x192" }]
-    }
-  ],
   "categories": ["productivity", "utilities"],
   "prefer_related_applications": false,
   "display_override": ["window-controls-overlay"],

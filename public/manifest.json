@@ -106,6 +106,12 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "label": "Workspace screenshot"
+    },
+    {
+      "src": "screenshots/mobile-support-web.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "web-app screenshot"
     }
 
   ],

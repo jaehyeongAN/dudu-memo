@@ -6,7 +6,7 @@ export interface SubTodo {
 
 export interface Todo {
   _id: string;
-  workspaceId: string; // 추가
+  workspaceId: string;
   text: string;
   completed: boolean;
   date: Date;
@@ -17,24 +17,25 @@ export interface Todo {
 
 export interface BacklogTodo {
   _id: string;
-  workspaceId: string; // 추가
+  workspaceId: string;
   text: string;
   completed: boolean;
   description: string;
   subTodos: SubTodo[];
   priority: 'high' | 'medium' | 'low';
+  categoryId?: string;
 }
 
 export interface Category {
   _id: string;
-  workspaceId: string; // 추가
+  workspaceId: string;
   name: string;
   color: string;
 }
 
 export interface Memo {
   _id: string;
-  workspaceId: string; // 추가
+  workspaceId: string;
   title: string;
   content: string;
   lastEdited: Date;

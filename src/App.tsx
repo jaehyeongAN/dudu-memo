@@ -245,6 +245,24 @@ function App() {
     }
   };
 
+  const updateBacklogTodoCategory = async (id: string, categoryId?: string | null) => {
+    try {
+      const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const updatedTodo = {
+          ...todoToUpdate,
+          categoryId: categoryId || null
+        };
+        const response = await api.put(`/backlog/${id}`, updatedTodo);
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo._id === id ? response.data : todo))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating backlog todo category:', error);
+    }
+  };
+
   // Todo functions
   const addTodo = async () => {
     if (newTodo.trim() !== '') {
@@ -686,11 +704,11 @@ function App() {
     }
   };
 
-  const updateMemo = async (id: string, title: string, content: string, categoryId?: string) => {
+  const updateMemo = async (id: string, title: string, content: string, categoryId?: string | null) => {
     const updatedMemo = {
       title,
       content,
-      categoryId,
+      categoryId: categoryId || null,
       lastEdited: new Date()
     };
   
@@ -880,6 +898,8 @@ function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <BacklogList
               todos={backlogTodos}
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
               newTodo={newTodo}
               setNewTodo={setNewTodo}
               addTodo={addBacklogTodo}
@@ -888,10 +908,15 @@ function App() {
               updateTodoText={updateBacklogTodoText}
               updateTodoDescription={updateBacklogTodoDescription}
               updateTodoPriority={updateBacklogTodoPriority}
+              updateTodoCategory={updateBacklogTodoCategory}
               addSubTodo={addBacklogSubTodo}
               updateSubTodo={updateBacklogSubTodo}
               toggleSubTodo={toggleBacklogSubTodo}
               deleteSubTodo={deleteBacklogSubTodo}
+              onAddCategory={handleAddCategory}
+              onUpdateCategory={handleUpdateCategory}
+              onDeleteCategory={handleDeleteCategory}
+              onSelectCategory={setSelectedCategoryId}
             />
           </div>
         ) : (

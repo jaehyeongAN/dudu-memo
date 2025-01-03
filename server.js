@@ -70,8 +70,9 @@ const CategorySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
   name: String,
-  color: String,
+  color: String
 });
+
 
 const Category = mongoose.model('Category', CategorySchema);
 
@@ -108,7 +109,8 @@ const BacklogTodoSchema = new mongoose.Schema({
     type: String,
     enum: ['high', 'medium', 'low'],
     default: 'medium'
-  }
+  },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
 });
 
 const BacklogTodo = mongoose.model('BacklogTodo', BacklogTodoSchema);
@@ -119,7 +121,7 @@ const MemoSchema = new mongoose.Schema({
   title: String,
   content: String,
   lastEdited: { type: Date, default: Date.now },
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null }
 });
 
 const Memo = mongoose.model('Memo', MemoSchema);
@@ -406,15 +408,19 @@ app.delete('/api/categories/:id', auth, async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
-    // 카테고리가 삭제되면 관련 메모의 categoryId를 null로 설정
-    await Memo.updateMany(
-      { 
-        userId: req.userId,
-        workspaceId: req.workspaceId,
-        categoryId: req.params.id 
-      },
-      { $unset: { categoryId: "" } }
-    );
+
+    // 관련된 메모와 백로그 항목의 categoryId를 null로 설정
+    await Promise.all([
+      Memo.updateMany(
+        { categoryId: req.params.id },
+        { $set: { categoryId: null } }
+      ),
+      BacklogTodo.updateMany(
+        { categoryId: req.params.id },
+        { $set: { categoryId: null } }
+      )
+    ]);
+
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     logger.error('Error deleting category:', error);

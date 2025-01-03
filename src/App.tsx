@@ -173,9 +173,9 @@ function App() {
     }
   }, [currentWorkspaceId, fetchTodos, fetchBacklogTodos, fetchMemos, fetchCategories]);
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const response = await api.post('/login', { email, password });
+      const response = await api.post('/login', { email, password, rememberMe });
       localStorage.setItem('token', response.data.token);
       setIsLoggedIn(true);
       setCurrentWorkspaceId(response.data.currentWorkspaceId);

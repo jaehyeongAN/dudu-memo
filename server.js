@@ -322,9 +322,18 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
+// JWT 토큰 생성 함수 수정
+const generateToken = (userId, rememberMe = false) => {
+  return jwt.sign(
+    { userId }, 
+    process.env.JWT_SECRET,
+    { expiresIn: rememberMe ? '30d' : '1h' }
+  );
+};
+
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       logger.warn(`Login attempt failed: User not found (${email})`);
@@ -335,8 +344,8 @@ app.post('/api/login', async (req, res) => {
       logger.warn(`Login attempt failed: Invalid credentials (${email})`);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    logger.info(`User logged in: ${email}`);
+    const token = generateToken(user._id, rememberMe);
+    logger.info(`User logged in: ${email} (Remember me: ${rememberMe})`);
     res.json({ 
       token, 
       userId: user._id,

@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "kr.doodu.www.twa",
-        "sha256_cert_fingerprints": ["43:60:10:2D:97:53:2B:96:F7:E7:C2:E0:F2:56:69:40:C1:A2:B5:92:B2:36:5D:77:60:86:3F:4D:BE:09:4C:E3"]
+        "sha256_cert_fingerprints": ["2B:82:A6:D3:0A:3D:CD:10:DC:0A:44:21:44:D0:8D:7F:A9:6F:76:E3:8A:E4:BE:21:00:05:A0:3F:9F:62:2D:81"]
       }
     }]

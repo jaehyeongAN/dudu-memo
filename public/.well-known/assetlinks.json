@@ -1,8 +1,11 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "kr.doodu.www.twa",
-        "sha256_cert_fingerprints": ["2B:82:A6:D3:0A:3D:CD:10:DC:0A:44:21:44:D0:8D:7F:A9:6F:76:E3:8A:E4:BE:21:00:05:A0:3F:9F:62:2D:81"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.doodu.www.twa",
+      "sha256_cert_fingerprints":
+        ["22:1E:B3:8E:B0:77:BE:7D:EC:28:56:0A:BC:E2:42:2F:B5:F2:D3:28:CE:DB:A8:CA:89:2F:4A:5D:53:9B:E7:97"]
+    }
+  }
+]

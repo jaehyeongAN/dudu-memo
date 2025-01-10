@@ -129,7 +129,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
     <div className="flex flex-col md:flex-row gap-4">
       {/* 카테고리 관리자 */}
       <div className="md:w-1/3">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-56 overflow-y-auto">
           <CategoryManager
             categories={categories}
             onAddCategory={onAddCategory}

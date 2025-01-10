@@ -93,7 +93,7 @@ const MemoList: React.FC<MemoListProps> = ({
       {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
       <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
         {/* 카테고리 관리자 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-56 overflow-y-auto">
           <CategoryManager
             categories={categories}
             onAddCategory={onAddCategory}
@@ -150,7 +150,7 @@ const MemoList: React.FC<MemoListProps> = ({
             </div>
           </div>
           {/* 메모 목록 컨테이너: 모바일에서는 스크롤 없음, 데스크톱에서는 스크롤 있음 */}
-          <div className="md:flex-1 md:overflow-y-auto">
+          <div className="md:flex-1 md:overflow-y-auto overflow-x-hidden">
             <ul className="divide-y divide-gray-200">
               {sortedAndFilteredMemos.map((memo) => (
                 <li

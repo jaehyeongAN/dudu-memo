@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
+import { PackagePlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
 import { BacklogTodo, Category } from '../types';
 import CategoryManager from './CategoryManager';
 
@@ -126,7 +126,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
   }, [openPriorityId, openCategoryId]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col md:flex-row gap-3">
       {/* 카테고리 관리자 */}
       <div className="md:w-1/3">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-56 overflow-y-auto">
@@ -174,7 +174,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
               onClick={addTodo}
               className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-sm"
             >
-              <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+              <PackagePlus className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
 
@@ -196,7 +196,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                         todo.completed ? 'text-green-500' : 'text-gray-400'
                       } hover:scale-110 transition-transform`}
                     >
-                      <CheckCircle className="w-5 h-5" />
+                      {todo.completed ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                     </button>
                     <input
                       type="text"
@@ -330,7 +330,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                             subTodo.completed ? 'text-green-500' : 'text-gray-400'
                           } hover:scale-110 transition-transform`}
                         >
-                          <CheckCircle className="w-4 h-4" />
+                          {subTodo.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                         </button>
                         
                         <input
@@ -358,7 +358,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                     onClick={() => addSubTodo(todo._id)}
                     className="mt-2 text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
                   >
-                    <PlusCircle className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     하위 할 일 추가
                   </button>
                 </div>

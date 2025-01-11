@@ -778,10 +778,10 @@ function App() {
           <div className="w-full flex flex-col items-center gap-1">
             {stats.remaining > 0 && (
               <div 
-                className="flex items-center gap-1 text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium w-fit"
+                className="flex items-center gap-1 text-xs px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full font-medium w-fit"
                 title={`남은 할 일 ${stats.remaining}개`}
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                 {stats.remaining}
               </div>
             )}
@@ -796,7 +796,7 @@ function App() {
             )}
           </div>
           {/* Progress bar */}
-          {stats.total > 0 && (
+          {/* {stats.total > 0 && (
             <div className="w-[80%] h-1 bg-gray-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-400 transition-all duration-300"
@@ -805,7 +805,7 @@ function App() {
                 }}
               />
             </div>
-          )}
+          )} */}
         </div>
       );
     }
@@ -835,16 +835,16 @@ function App() {
 
       <main className="pt-16 pb-20 md:pb-6 min-h-screen">
         {activeTab === 'todo' ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-col lg:flex-row gap-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
+            <div className="flex flex-col lg:flex-row gap-3">
               <div className="lg:w-1/3">
                 {/* 모바일 캘린더 토글 버튼 - 항상 표시 */}
-                <div className="md:hidden mb-4">
+                <div className="md:hidden mb-3">
                   <button
                     onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
                     className="w-full flex items-center justify-between px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
                   >
-                    <span className="font-medium">캘린더</span>
+                    <span className="font-medium">{isCalendarCollapsed ? '캘린더 열기' : '캘린더 접기'}</span>
                     {isCalendarCollapsed ? (
                       <ChevronDown className="w-5 h-5" />
                     ) : (
@@ -895,7 +895,7 @@ function App() {
             </div>
           </div>
         ) : activeTab === 'backlog' ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
             <BacklogList
               todos={backlogTodos}
               categories={categories}
@@ -920,7 +920,7 @@ function App() {
             />
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
             <MemoList
               memos={memos}
               categories={categories}

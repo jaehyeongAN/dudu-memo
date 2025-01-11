@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
+import { FilePlus2, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
 import CategoryManager from './CategoryManager';
@@ -91,7 +91,7 @@ const MemoList: React.FC<MemoListProps> = ({
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-8rem)] gap-4">
       {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
-      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
+      <div className={`w-full md:w-1/3 flex flex-col gap-3 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
         {/* 카테고리 관리자 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-56 overflow-y-auto">
           <CategoryManager
@@ -106,7 +106,7 @@ const MemoList: React.FC<MemoListProps> = ({
 
         {/* 메모 목록 */}
         <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col md:min-h-0">
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+          <div className="p-4 flex-shrink-0">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-gray-800">메모 목록</h2>
@@ -140,10 +140,10 @@ const MemoList: React.FC<MemoListProps> = ({
                 ) : (
                   <button
                     onClick={addMemo}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                    className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-sm"
                     title="새 메모 추가"
                   >
-                    <PlusCircle className="w-5 h-5" />
+                    <FilePlus2 className="w-5 h-5" />
                   </button>
                 )}
               </div>
@@ -302,7 +302,7 @@ const MemoList: React.FC<MemoListProps> = ({
               className="flex-1 p-4 w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0"
               placeholder="내용을 입력하세요..."
             />
-            <div className="p-4 pb-24 md:pb-4 border-t border-gray-200">
+            <div className="p-4 pb-20 md:pb-4 flex justify-end">
               <button
                 onClick={() => {
                   deleteMemo(activeMemo._id);

@@ -54,7 +54,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   return (
     <div className="mb-4 space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">카테고리</h3>
+        <h3 className="text-base font-semibold text-gray-900">카테고리</h3>
         <button
           onClick={() => setIsAdding(!isAdding)}
           className="p-1 text-gray-600 hover:text-gray-900"

@@ -83,8 +83,8 @@ const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
       {/* 워크스페이스 목록 드롭다운 */}
       {isDropdownOpen && (
         <div className="fixed inset-x-0 top-16 mx-4 md:mx-0 md:absolute md:right-0 md:top-full md:mt-2 md:w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[80vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">워크스페이스</span>
+          <div className="sticky top-0 bg-white p-3 flex justify-between items-center">
+            <span className="text-base font-semibold text-gray-700">워크스페이스</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {

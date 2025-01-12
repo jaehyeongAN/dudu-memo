@@ -90,30 +90,29 @@
       "label": "Todo2 screenshot"
     },
     {
+      "src": "screenshots/mobile-memo-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Memo1 screenshot"
+    },
+    {
+      "src": "screenshots/mobile-memo-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Memo2 screenshot"
+    },
+    {
       "src": "screenshots/mobile-backlog.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "label": "Backlog screenshot"
     },
     {
-      "src": "screenshots/mobile-memo.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "Memo screenshot"
-    },
-    {
       "src": "screenshots/mobile-workspace.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "label": "Workspace screenshot"
-    },
-    {
-      "src": "screenshots/mobile-support-web.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "web-app screenshot"
     }
-
   ],
   "categories": ["productivity", "utilities"],
   "prefer_related_applications": false,

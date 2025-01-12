@@ -112,6 +112,12 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "label": "Workspace screenshot"
+    },
+    {
+      "src": "screenshots/mobile-web.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Workspace screenshot"
     }
   ],
   "categories": ["productivity", "utilities"],

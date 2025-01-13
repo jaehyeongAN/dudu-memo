@@ -289,37 +289,53 @@ app.post('/api/signup', async (req, res) => {
     await Memo.insertMany(sampleMemos);
 
     const sampleTodos = [
+      // {
+      //   userId: user._id,
+      //   workspaceId: defaultWorkspace._id,
+      //   text: '👋 환영합니다! Doo!Du에 오신 것을 환영해요!',
+      //   completed: false,
+      //   date: today,
+      //   description: '✔︎ Doo!Du를 통해 쉽고 빠르게 당신의 할 일과 아이디어를 정리해보세요!',
+      //   priority: 'high',
+      //   subTodos: [
+      //     { text: '🗓️ 캘린더 기반 할 일 관리: 오늘의 계획부터 장기 목표까지 체계적으로 정리!', completed: false },
+      //     { text: '📦 백로그 보관소: 일정에 등록하기 부담스러운 일은 백로그로!', completed: false },
+      //     { text: '✏️ 메모: 떠오르는 생각을 빠르게 적고, 아이디어를 카테고리별로 깔끔하게!', completed: false },
+      //     { text: '🏢 워크스페이스: 개인, 업무, 프로젝트 등 공간별로 완벽히 분리된 관리!', completed: false }
+      //   ]
+      // },
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
-        text: '👋 환영합니다! Doo!Du에 오신 것을 환영해요!',
+        text: 'Doo!Du 살펴보기 👋',
         completed: false,
         date: today,
-        description: '✔︎ Doo!Du를 통해 쉽고 빠르게 당신의 할 일과 아이디어를 정리해보세요!',
+        description: '쉽고 빠르게 당신의 할 일과 아이디어를 정리해보세요!',
         priority: 'high',
         subTodos: [
-          { text: '🗓️ 캘린더 기반 할 일 관리: 오늘의 계획부터 장기 목표까지 체계적으로 정리!', completed: false },
-          { text: '📦 백로그 보관소: 일정에 등록하기 부담스러운 일은 백로그로!', completed: false },
-          { text: '✏️ 메모: 떠오르는 생각을 빠르게 적고, 아이디어를 카테고리별로 깔끔하게!', completed: false },
-          { text: '🏢 워크스페이스: 개인, 업무, 프로젝트 등 공간별로 완벽히 분리된 관리!', completed: false }
+          { text: '🔥 회원가입 및 로그인하기', completed: true },
+          { text: '🗓️ 캘린더에 할 일 등록하기', completed: false },
+          { text: '📦 백로그에 일정 보관해놓기', completed: false },
+          { text: '✏️ 메모에 아이디어 작성하기', completed: false },
+          { text: '🏢 워크스페이스에 분리하기', completed: false }
         ]
       },
-      {
-        userId: user._id,
-        workspaceId: defaultWorkspace._id,
-        text: '두두 둘러보기',
-        completed: false,
-        date: today,
-        description: '"Thik Simple, Act Fast!" 쉽고 빠른 투두/메모 관리 도구인 두두의 주요 기능을 살펴봅니다.',
-        priority: 'low',
-        subTodos: [
-          { text: '1️⃣ 회원가입 및 로그인하기', completed: true },
-          { text: '2️⃣ "할 일" 살펴보기', completed: false },
-          { text: '3️⃣ "백로그" 살펴보기', completed: false },
-          { text: '4️⃣ "메모" 살펴보기', completed: false },
-          { text: '5️⃣ "워크스페이스" 살펴보기', completed: false }
-        ]
-      },
+      // {
+      //   userId: user._id,
+      //   workspaceId: defaultWorkspace._id,
+      //   text: '두두 둘러보기',
+      //   completed: false,
+      //   date: today,
+      //   description: '"Thik Simple, Act Fast!" 쉽고 빠른 투두/메모 관리 도구인 두두의 주요 기능을 살펴봅니다.',
+      //   priority: 'low',
+      //   subTodos: [
+      //     { text: '1️⃣ 회원가입 및 로그인하기', completed: true },
+      //     { text: '2️⃣ "할 일" 살펴보기', completed: false },
+      //     { text: '3️⃣ "백로그" 살펴보기', completed: false },
+      //     { text: '4️⃣ "메모" 살펴보기', completed: false },
+      //     { text: '5️⃣ "워크스페이스" 살펴보기', completed: false }
+      //   ]
+      // },
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,

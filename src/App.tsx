@@ -835,7 +835,7 @@ function App() {
 
       <main className="pt-16 pb-20 md:pb-6 min-h-screen">
         {activeTab === 'todo' ? (
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
             <div className="flex flex-col lg:flex-row gap-3">
               <div className="lg:w-1/3">
                 {/* 모바일 캘린더 토글 버튼 - 항상 표시 */}
@@ -895,7 +895,7 @@ function App() {
             </div>
           </div>
         ) : activeTab === 'backlog' ? (
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
             <BacklogList
               todos={backlogTodos}
               categories={categories}
@@ -920,7 +920,7 @@ function App() {
             />
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
             <MemoList
               memos={memos}
               categories={categories}

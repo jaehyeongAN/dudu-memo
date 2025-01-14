@@ -193,7 +193,7 @@ const TodoList: React.FC<TodoListProps> = ({
                 />
 
                 {/* 하위 할 일 목록 */}
-                <ul>
+                <ul className="space-y-2.5">
                   {todo.subTodos.map((subTodo) => (
                     <li key={subTodo._id} className="flex items-start gap-2 pl-6 sm:pl-8 relative">
                       <div className="absolute left-2 sm:left-3 top-0 bottom-0 w-px bg-gray-200" />

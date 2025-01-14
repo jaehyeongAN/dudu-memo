@@ -120,37 +120,48 @@ const TodoList: React.FC<TodoListProps> = ({
                 todo.completed ? 'opacity-75' : ''
               }`}
             >
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
-                  onClick={() => toggleTodo(todo._id)}
-                  className={`flex-shrink-0 focus:outline-none ${
-                    todo.completed ? 'text-green-500' : 'text-gray-400'
-                  } hover:scale-110 transition-transform`}
-                  aria-label={todo.completed ? "할 일 완료 취소" : "할 일 완료"}
-                >
-                  {todo.completed ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
-                </button>
-                <input
-                  type="text"
-                  value={todo.text}
-                  onChange={(e) => updateTodoText(todo._id, e.target.value)}
-                  className={`flex-grow min-w-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 text-sm sm:text-base ${
-                    todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
-                  }`}
-                />
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {!todo.completed && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => toggleTodo(todo._id)}
+                    className={`flex-shrink-0 focus:outline-none ${
+                      todo.completed ? 'text-green-500' : 'text-gray-400'
+                    } hover:scale-110 transition-transform`}
+                    aria-label={todo.completed ? "할 일 완료 취소" : "할 일 완료"}
+                  >
+                    {todo.completed ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
+                  </button>
+                  <input
+                    type="text"
+                    value={todo.text}
+                    onChange={(e) => updateTodoText(todo._id, e.target.value)}
+                    className={`flex-grow min-w-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 text-sm sm:text-base ${
+                      todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
+                    }`}
+                  />
+                  <button
+                    onClick={() => deleteTodo(todo._id)}
+                    className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
+                    aria-label="할 일 삭제"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* 우선순위 뱃지 */}
+                {!todo.completed && (
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="relative" id={`priority-dropdown-${todo._id}`}>
                       <button
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
                         onClick={() => setOpenPriorityId(openPriorityId === todo._id ? null : todo._id)}
                       >
-                        <span className={`w-2 h-2 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
                         {priorityConfig[todo.priority].label}
-                        <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+                        <ChevronDown className="w-3 h-3" />
                       </button>
                       {openPriorityId === todo._id && (
-                        <div className="absolute right-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        <div className="absolute left-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                           {Object.entries(priorityConfig).map(([key, config]) => (
                             <button
                               key={key}
@@ -169,74 +180,66 @@ const TodoList: React.FC<TodoListProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
-                  <button
-                    onClick={() => deleteTodo(todo._id)}
-                    className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
-                    aria-label="할 일 삭제"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+                  </div>
+                )}
+
+                {/* 설명 입력 영역 */}
+                <input
+                  type="text"
+                  value={todo.description}
+                  onChange={(e) => updateTodoDescription(todo._id, e.target.value)}
+                  className="mt-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-600 bg-white rounded border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="설명 추가..."
+                />
+
+                {/* 하위 할 일 목록 */}
+                <ul>
+                  {todo.subTodos.map((subTodo) => (
+                    <li key={subTodo._id} className="flex items-start gap-2 pl-6 sm:pl-8 relative">
+                      <div className="absolute left-2 sm:left-3 top-0 bottom-0 w-px bg-gray-200" />
+                      
+                      <button
+                        onClick={() => toggleSubTodo(todo._id, subTodo._id)}
+                        className={`flex-shrink-0 focus:outline-none mt-0.5 ${
+                          subTodo.completed ? 'text-green-500' : 'text-gray-400'
+                        } hover:scale-110 transition-transform`}
+                      >
+                        {subTodo.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                      </button>
+                      
+                      <div className="flex-grow min-w-0">
+                        <input
+                          type="text"
+                          value={subTodo.text}
+                          onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
+                          className={`w-full bg-transparent text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 py-0.5 ${
+                            subTodo.completed 
+                              ? 'line-through text-gray-500' 
+                              : 'text-gray-700'
+                          }`}
+                          placeholder="하위 할 일..."
+                        />
+                      </div>
+                      
+                      <button
+                        onClick={() => deleteSubTodo(todo._id, subTodo._id)}
+                        className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform mt-0.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* 하위 할 일 추가 버튼 */}
+                <button
+                  onClick={() => addSubTodo(todo._id)}
+                  className="text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
+                >
+                  <Plus className="w-4 h-4" />
+                  하위 할 일 추가
+                </button>
               </div>
-
-              {/* 설명 입력 영역 */}
-              <input
-                type="text"
-                value={todo.description}
-                onChange={(e) => updateTodoDescription(todo._id, e.target.value)}
-                className="mt-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-600 bg-white rounded border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                placeholder="설명 추가..."
-              />
-
-              {/* 하위 할 일 목록 */}
-              <ul className="mt-3 space-y-2.5">
-                {todo.subTodos.map((subTodo) => (
-                  <li key={subTodo._id} className="flex items-start gap-2 pl-6 sm:pl-8 relative">
-                    {/* 들여쓰기 라인 */}
-                    <div className="absolute left-2 sm:left-3 top-0 bottom-0 w-px bg-gray-200" />
-                    
-                    <button
-                      onClick={() => toggleSubTodo(todo._id, subTodo._id)}
-                      className={`flex-shrink-0 focus:outline-none mt-0.5 ${
-                        subTodo.completed ? 'text-green-500' : 'text-gray-400'
-                      } hover:scale-110 transition-transform`}
-                    >
-                      {subTodo.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                    </button>
-                    
-                    <div className="flex-grow min-w-0">
-                      <input
-                        type="text"
-                        value={subTodo.text}
-                        onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
-                        className={`w-full bg-transparent text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 py-0.5 ${
-                          subTodo.completed 
-                            ? 'line-through text-gray-500' 
-                            : 'text-gray-700'
-                        }`}
-                        placeholder="하위 할 일..."
-                      />
-                    </div>
-                    
-                    <button
-                      onClick={() => deleteSubTodo(todo._id, subTodo._id)}
-                      className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform mt-0.5"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              {/* 하위 할 일 추가 버튼 */}
-              <button
-                onClick={() => addSubTodo(todo._id)}
-                className="mt-2 text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
-              >
-                <Plus className="w-4 h-4" />
-                하위 할 일 추가
-              </button>
             </div>
           ))}
           

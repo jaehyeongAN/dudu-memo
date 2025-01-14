@@ -319,7 +319,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                   />
 
                   {/* 하위 할 일 목록 */}
-                  <ul>
+                  <ul className="space-y-2.5">
                     {todo.subTodos.map((subTodo) => (
                       <li key={subTodo._id} className="flex items-start gap-2 pl-7 relative">
                         <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />

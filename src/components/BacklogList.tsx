@@ -216,7 +216,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
 
                   {/* 뱃지 영역 - 모바일에서는 할 일 텍스트 아래에 표시 */}
                   {!todo.completed && (
-                    <div className="flex flex-wrap items-center gap-2 pl-7">
+                    <div className="flex flex-wrap items-center gap-2">
                       {/* 카테고리 뱃지 */}
                       <div className="relative" id={`category-dropdown-${todo._id}`}>
                         <button
@@ -319,7 +319,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                   />
 
                   {/* 하위 할 일 목록 */}
-                  <ul className="mt-2 space-y-2">
+                  <ul>
                     {todo.subTodos.map((subTodo) => (
                       <li key={subTodo._id} className="flex items-start gap-2 pl-7 relative">
                         <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
@@ -356,7 +356,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                   {/* 하위 할 일 추가 버튼 */}
                   <button
                     onClick={() => addSubTodo(todo._id)}
-                    className="mt-2 text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
+                    className="text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
                   >
                     <Plus className="w-4 h-4" />
                     하위 할 일 추가

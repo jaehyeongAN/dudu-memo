@@ -890,6 +890,7 @@ function App() {
                   updateSubTodo={updateSubTodo}
                   toggleSubTodo={toggleSubTodo}
                   deleteSubTodo={deleteSubTodo}
+                  onDateChange={setSelectedDate}
                 />
               </div>
             </div>

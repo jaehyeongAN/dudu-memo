@@ -38,8 +38,9 @@ const Header: React.FC<HeaderProps> = ({
     <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-1">
-          <div className="flex items-center gap-4">
-            <span className="text-xl font-bold text-indigo-600">✔︎ Doo!Du</span>
+          <div className="flex items-center gap-2">
+            <img src="/icons/icon-512x512-no-padding.png" alt="Doo!Du Logo" className="w-4 h-4" />
+            <span className="text-xl font-bold text-indigo-600">Doo!Du</span>
             {workspaceSelector}
           </div>
 

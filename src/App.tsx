@@ -188,12 +188,11 @@ function App() {
 
   const handleSignup = async (
     name: string,
-    birthdate: string,
     email: string,
     password: string
   ) => {
     try {
-      await api.post('/signup', { name, birthdate, email, password });
+      await api.post('/signup', { name, email, password });
       alert('회원가입이 완료되었습니다. 로그인해주세요.');
       setShowSignup(false);
     } catch (error) {

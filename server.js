@@ -54,10 +54,9 @@ const WorkspaceSchema = new mongoose.Schema({
 
 const Workspace = mongoose.model('Workspace', WorkspaceSchema);
 
-// User Schema 수정
+// User Schema 수정 - birthdate 필드 제거
 const UserSchema = new mongoose.Schema({
   name: String,
-  birthdate: Date,
   email: { type: String, unique: true },
   password: String,
   currentWorkspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' }
@@ -233,9 +232,9 @@ app.put('/api/users/current-workspace', auth, async (req, res) => {
 // 기존 API 엔드포인트들 수정 - workspaceId 추가
 app.post('/api/signup', async (req, res) => {
   try {
-    const { name, birthdate, email, password } = req.body;
+    const { name, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, birthdate, email, password: hashedPassword });
+    const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
     // 기본 워크스페이스 생성
@@ -281,7 +280,7 @@ app.post('/api/signup', async (req, res) => {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
         title: '새해 목표 리스트 작성 🎯',
-        content: '[2025년 목표]\n1️⃣ 운동: 주 3회 이상 규칙적으로 운동하기 🏋️‍♀️\n	•	헬스장 등록 완료 (1월 중)\n	•	5km 달리기 기록 목표 세우기\n\n2️⃣ 취미 활동: 새로운 취미 2가지 배우기 🎨\n	•	디지털 드로잉 클래스 등록\n	•	주말마다 1시간 요리 연습\n\n3️⃣ 자기계발: 매달 한 권의 책 읽기 📚\n	•	1월 추천 도서: “Atomic Habits”\n\n이제 목표를 세웠으니, 차근차근 실천하며 나아가자! 💪',
+        content: '[2025년 목표]\n1️⃣ 운동: 주 3회 이상 규칙적으로 운동하기 🏋️‍♀️\n	•	헬스장 등록 완료 (1월 중)\n	•	5km 달리기 기록 목표 세우기\n\n2️⃣ 취미 활동: 새로운 취미 2가지 배우기 🎨\n	•	디지털 드로잉 클래스 등록\n	•	주말마다 1시간 요리 연습\n\n3️⃣ 자기계발: 매달 한 권의 책 읽기 📚\n	•	1월 추천 도서: "Atomic Habits"\n\n이제 목표를 세웠으니, 차근차근 실천하며 나아가자! 💪',
         categoryId: categories[1]._id,
         lastEdited: new Date()
       }

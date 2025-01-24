@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface SignupProps {
-  onSignup: (name: string, birthdate: string, email: string, password: string) => void;
+  onSignup: (name: string, email: string, password: string) => void;
   onSwitchToLogin: () => void;
 }
 
 const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
   const [name, setName] = useState('');
-  const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,7 +20,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    onSignup(name, birthdate, email, password);
+    onSignup(name, email, password);
   };
 
   return (
@@ -51,20 +50,6 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
                 placeholder="이름"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="birthdate" className="sr-only">
-                생년월일
-              </label>
-              <input
-                id="birthdate"
-                name="birthdate"
-                type="date"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                value={birthdate}
-                onChange={(e) => setBirthdate(e.target.value)}
               />
             </div>
             <div>

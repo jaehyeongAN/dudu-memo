@@ -4,9 +4,10 @@ import { Eye, EyeOff } from 'lucide-react';
 interface LoginProps {
   onLogin: (email: string, password: string, rememberMe: boolean) => void;
   onSwitchToSignup: () => void;
+  onGuestStart: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, onGuestStart }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +20,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full space-y-6">
         <div>
           <div className="flex items-center justify-center gap-2">
             <img src="/icons/icon-512x512-no-padding.png" alt="Doo!Du Logo" className="h-6 w-6" />
@@ -29,7 +30,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup }) => {
             복잡한 계획은 잊으세요. <br /> 단순하게 정리하면 하루가 더 쉬워집니다. 
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email-address" className="sr-only">
@@ -88,15 +89,24 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup }) => {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <button
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               로그인
             </button>
+            
+            <button
+              type="button"
+              onClick={onGuestStart}
+              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              게스트로 시작하기
+            </button>
           </div>
         </form>
+        
         <div className="text-sm text-center">
           <button onClick={onSwitchToSignup} className="font-medium text-indigo-600 hover:text-indigo-500">
             계정이 없으신가요? 회원가입

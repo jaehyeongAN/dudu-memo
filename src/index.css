@@ -11,6 +11,9 @@ body {
 .react-calendar {
   @apply w-full max-w-full bg-white border-none font-sans;
   line-height: 1.125em;
+  width: 100%;
+  border: none;
+  font-family: inherit;
 }
 
 .react-calendar__navigation button {
@@ -26,8 +29,12 @@ body {
   @apply bg-gray-50;
 }
 
-.react-calendar__month-view__days__day--weekend {
-  @apply text-red-600;
+.react-calendar__month-view__days__day--weekend:nth-child(7n) {
+  color: #3B82F6;
+}
+
+.react-calendar__month-view__days__day--weekend:not(:nth-child(7n)) {
+  color: #EF4444;
 }
 
 .react-calendar__tile {
@@ -38,10 +45,13 @@ body {
 .react-calendar__tile:enabled:hover,
 .react-calendar__tile:enabled:focus {
   @apply bg-indigo-50 text-indigo-600 rounded-lg;
+  background-color: #F3F4F6;
 }
 
 .react-calendar__tile--now {
   @apply bg-yellow-50 rounded-lg font-bold text-indigo-600;
+  background: #EEF2FF !important;
+  color: #4F46E5;
 }
 
 .react-calendar__tile--now:enabled:hover,
@@ -51,6 +61,8 @@ body {
 
 .react-calendar__tile--active {
   @apply bg-indigo-500 rounded-lg font-bold text-white;
+  background: #4F46E5 !important;
+  color: white;
 }
 
 .react-calendar__tile--active:enabled:hover,
@@ -152,4 +164,16 @@ input:focus, textarea:focus {
 
 .slide-in {
   animation: slideIn 0.3s ease-out forwards;
+}
+
+/* 요일 헤더 스타일 */
+.react-calendar__month-view__weekdays {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 요일 밑줄 제거 */
+.react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+  cursor: default;
 }

@@ -15,6 +15,7 @@ import InstallPWA from './components/InstallPWA';
 import api from './api';
 import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
+import Settings from './components/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -34,6 +35,7 @@ function App() {
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
@@ -1095,10 +1097,9 @@ function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onLogout={handleLogout}
-        onDeleteAccount={handleDeleteAccount}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         isGuestMode={isGuestMode}
         workspaceSelector={
           <WorkspaceSelector
@@ -1108,7 +1109,6 @@ function App() {
             onCreateWorkspace={handleCreateWorkspace}
             onUpdateWorkspace={handleUpdateWorkspace}
             onDeleteWorkspace={handleDeleteWorkspace}
-            isGuestMode={isGuestMode}
           />
         }
       />
@@ -1224,8 +1224,16 @@ function App() {
         )}
       </main>
 
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab } />
+      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       <InstallPWA />
+      
+      <Settings
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
+        isGuestMode={isGuestMode}
+      />
     </div>
   );
 }

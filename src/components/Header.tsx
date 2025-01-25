@@ -9,6 +9,7 @@ interface HeaderProps {
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
   workspaceSelector: React.ReactNode;
+  isGuestMode: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -18,7 +19,8 @@ const Header: React.FC<HeaderProps> = ({
   onDeleteAccount,
   isMobileMenuOpen,
   setIsMobileMenuOpen,
-  workspaceSelector
+  workspaceSelector,
+  isGuestMode
 }) => {
   const handleDeleteAccount = () => {
     const confirmed = window.confirm(
@@ -41,6 +43,11 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-2">
             <img src="/icons/icon-512x512-no-padding.png" alt="Doo!Du Logo" className="w-4 h-4" />
             <span className="text-xl font-bold text-indigo-600">Doo!Du</span>
+            {isGuestMode && (
+              <span className="text-sm px-2 py-1 bg-yellow-200 text-gray-500 rounded-full">
+                Guest
+              </span>
+            )}
             {workspaceSelector}
           </div>
 

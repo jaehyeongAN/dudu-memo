@@ -15,7 +15,6 @@ import InstallPWA from './components/InstallPWA';
 import api from './api';
 import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
-import Settings from './components/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -35,7 +34,6 @@ function App() {
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>('');
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
@@ -105,6 +103,8 @@ function App() {
     try {
       await api.put('/users/current-workspace', { workspaceId });
       setCurrentWorkspaceId(workspaceId);
+      localStorage.setItem('currentWorkspaceId', workspaceId);
+      
       // 워크스페이스 변경 시 데이터 다시 로드
       fetchTodos();
       fetchBacklogTodos();
@@ -171,14 +171,32 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
+    
     if (token) {
       setIsLoggedIn(true);
-      if (savedWorkspaceId) {
-        setCurrentWorkspaceId(savedWorkspaceId);
-      }
-      fetchWorkspaces();
+      
+      // 워크스페이스 데이터 로드
+      const initializeWorkspaces = async () => {
+        try {
+          const response = await api.get('/workspaces');
+          setWorkspaces(response.data);
+          
+          // 저장된 워크스페이스 ID가 있고, 해당 워크스페이스가 존재하는 경우
+          if (savedWorkspaceId && response.data.some((w: Workspace) => w._id === savedWorkspaceId)) {
+            setCurrentWorkspaceId(savedWorkspaceId);
+          } else if (response.data.length > 0) {
+            // 저장된 ID가 없거나 유효하지 않은 경우, 첫 번째 워크스페이스 선택
+            setCurrentWorkspaceId(response.data[0]._id);
+            localStorage.setItem('currentWorkspaceId', response.data[0]._id);
+          }
+        } catch (error) {
+          console.error('Error fetching workspaces:', error);
+        }
+      };
+
+      initializeWorkspaces();
     }
-  }, [fetchWorkspaces]);
+  }, []);
 
   useEffect(() => {
     if (currentWorkspaceId && !isGuestMode) {
@@ -1097,9 +1115,10 @@ function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
-        onOpenSettings={() => setIsSettingsOpen(true)}
         isGuestMode={isGuestMode}
         workspaceSelector={
           <WorkspaceSelector
@@ -1109,6 +1128,7 @@ function App() {
             onCreateWorkspace={handleCreateWorkspace}
             onUpdateWorkspace={handleUpdateWorkspace}
             onDeleteWorkspace={handleDeleteWorkspace}
+            isGuestMode={isGuestMode}
           />
         }
       />
@@ -1224,16 +1244,8 @@ function App() {
         )}
       </main>
 
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab } />
       <InstallPWA />
-      
-      <Settings
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onLogout={handleLogout}
-        onDeleteAccount={handleDeleteAccount}
-        isGuestMode={isGuestMode}
-      />
     </div>
   );
 }

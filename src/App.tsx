@@ -16,6 +16,7 @@ import api from './api';
 import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
 import Settings from './components/Settings';
+import { useSwipeable } from 'react-swipeable';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -36,6 +37,7 @@ function App() {
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
 
   const handleDeleteAccount = async () => {
     try {
@@ -1115,6 +1117,34 @@ function App() {
     }
   };
 
+  // 달 변경 핸들러 추가
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    const newDate = new Date(selectedDate);
+    
+    if (direction === 'next') {
+      setCalendarAnimation('slide-left');
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else {
+      setCalendarAnimation('slide-right');
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    
+    setSelectedDate(newDate);
+    
+    // 애니메이션 리셋
+    setTimeout(() => {
+      setCalendarAnimation('');
+    }, 300);
+  };
+
+  // 스와이프 핸들러 설정
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => handleMonthChange('next'),
+    onSwipedRight: () => handleMonthChange('prev'),
+    preventDefaultTouchmoveEvent: true,
+    trackMouse: false
+  });
+
   if (!isLoggedIn && !isGuestMode) {
     return showSignup ? (
       <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />
@@ -1231,21 +1261,32 @@ function App() {
                 }`}>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-6">
-                      <Calendar
-                        onChange={(value) => {
-                          if (value instanceof Date) {
-                            setSelectedDate(value);
-                            setIsCalendarCollapsed(true);
+                      <div
+                        {...swipeHandlers}
+                        className={`transition-transform duration-300 ease-in-out ${
+                          calendarAnimation === 'slide-left' 
+                            ? '-translate-x-full' 
+                            : calendarAnimation === 'slide-right'
+                            ? 'translate-x-full'
+                            : ''
+                        }`}
+                      >
+                        <Calendar
+                          onChange={(value) => {
+                            if (value instanceof Date) {
+                              setSelectedDate(value);
+                              setIsCalendarCollapsed(true);
+                            }
+                          }}
+                          value={selectedDate}
+                          tileContent={tileContent}
+                          className="w-full border-none"
+                          calendarType="US"
+                          tileClassName={({ date, view }) => 
+                            view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
                           }
-                        }}
-                        value={selectedDate}
-                        tileContent={tileContent}
-                        className="w-full border-none"
-                        calendarType="US"
-                        tileClassName={({ date, view }) => 
-                          view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
-                        }
-                      />
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

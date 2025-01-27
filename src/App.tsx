@@ -508,19 +508,16 @@ function App() {
   const toggleTodo = async (id: string) => {
     try {
       if (isGuestMode) {
-        const todoToUpdate = todos.find((todo) => todo._id === id);
-        if (todoToUpdate) {
-          const updatedTodo = {
-            ...todoToUpdate,
-            completed: !todoToUpdate.completed
-          };
-          setTodos((prevTodos) =>
-            prevTodos.map((todo) => (todo._id === id ? updatedTodo : todo))
-          );
-        }
+        // 게스트 모드에서는 로컬에서만 상태 업데이트
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, completed: !todo.completed } : todo
+          )
+        );
         return;
       }
 
+      // 로그인된 사용자의 경우 API 호출
       const todoToUpdate = todos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/todos/${id}`, {
@@ -655,6 +652,16 @@ function App() {
 
   const toggleBacklogTodo = async (id: string) => {
     try {
+      if (isGuestMode) {
+        // 게스트 모드에서는 로컬에서만 상태 업데이트
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, completed: !todo.completed } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/backlog/${id}`, {
@@ -882,6 +889,24 @@ function App() {
 
   const toggleSubTodo = async (todoId: string, subTodoId: string) => {
     try {
+      if (isGuestMode) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === todoId
+              ? {
+                  ...todo,
+                  subTodos: todo.subTodos.map((subTodo) =>
+                    subTodo._id === subTodoId
+                      ? { ...subTodo, completed: !subTodo.completed }
+                      : subTodo
+                  ),
+                }
+              : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = todos.find((todo) => todo._id === todoId);
       if (todoToUpdate) {
         const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>
@@ -904,6 +929,24 @@ function App() {
 
   const toggleBacklogSubTodo = async (todoId: string, subTodoId: string) => {
     try {
+      if (isGuestMode) {
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === todoId
+              ? {
+                  ...todo,
+                  subTodos: todo.subTodos.map((subTodo) =>
+                    subTodo._id === subTodoId
+                      ? { ...subTodo, completed: !subTodo.completed }
+                      : subTodo
+                  ),
+                }
+              : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === todoId);
       if (todoToUpdate) {
         const updatedSubTodos = todoToUpdate.subTodos.map((subTodo) =>

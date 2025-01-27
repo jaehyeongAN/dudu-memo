@@ -6,6 +6,8 @@ interface HeaderProps {
   setActiveTab: (tab: 'todo' | 'memo' | 'backlog') => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
+  onLogout: () => void;
+  onDeleteAccount: () => void;
   onOpenSettings: () => void;
   workspaceSelector: React.ReactNode;
   isGuestMode: boolean;
@@ -16,6 +18,8 @@ const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   isMobileMenuOpen,
   setIsMobileMenuOpen,
+  onLogout,
+  onDeleteAccount,
   onOpenSettings,
   workspaceSelector,
   isGuestMode

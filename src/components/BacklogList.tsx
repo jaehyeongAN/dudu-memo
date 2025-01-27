@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PackagePlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
 import { BacklogTodo, Category } from '../types';
 import CategoryManager from './CategoryManager';
+import { toast } from 'react-hot-toast';
 
 interface BacklogListProps {
   todos: BacklogTodo[];
@@ -125,6 +126,17 @@ const BacklogList: React.FC<BacklogListProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openPriorityId, openCategoryId]);
 
+  const handleToggleTodo = (todo: BacklogTodo) => {
+    toggleTodo(todo._id);
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="font-medium">
+          {todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉'}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-3">
       {/* 카테고리 관리자 */}
@@ -191,7 +203,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                   {/* 메인 할 일 영역 */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => toggleTodo(todo._id)}
+                      onClick={() => handleToggleTodo(todo)}
                       className={`flex-shrink-0 focus:outline-none ${
                         todo.completed ? 'text-green-500' : 'text-gray-400'
                       } hover:scale-110 transition-transform`}

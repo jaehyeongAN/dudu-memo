@@ -17,6 +17,7 @@ import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
 import Settings from './components/Settings';
 import { useSwipeable } from 'react-swipeable';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -633,6 +634,35 @@ function App() {
     }
   };
 
+  const updateTodoDate = async (id: string, newDate: Date) => {
+    try {
+      if (isGuestMode) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, date: newDate } : todo
+          )
+        );
+        return;
+      }
+
+      const todoToUpdate = todos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const response = await api.put(`/todos/${id}`, {
+          ...todoToUpdate,
+          date: newDate,
+        });
+        
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...response.data, date: new Date(response.data.date) } : todo
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating todo date:', error);
+    }
+  };
+
   // Backlog functions
   const addBacklogTodo = async () => {
     if (newTodo.trim() !== '') {
@@ -1213,6 +1243,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster 
+        position="bottom-center"
+        toastOptions={{
+          className: 'text-sm',
+          duration: 2000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }}
+      />
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -1303,6 +1344,7 @@ function App() {
                   updateTodoText={updateTodoText}
                   updateTodoDescription={updateTodoDescription}
                   updateTodoPriority={updateTodoPriority}
+                  updateTodoDate={updateTodoDate}
                   addSubTodo={addSubTodo}
                   updateSubTodo={updateSubTodo}
                   toggleSubTodo={toggleSubTodo}

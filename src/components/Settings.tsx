@@ -42,6 +42,11 @@ const Settings: React.FC<SettingsProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const handleLogout = () => {
+    onClose();
+    onLogout();
+  };
+
   const handleDeleteAccount = () => {
     const confirmed = window.confirm(
       '정말로 계정을 삭제하시겠습니까?\n\n' +
@@ -52,6 +57,7 @@ const Settings: React.FC<SettingsProps> = ({
     );
     
     if (confirmed) {
+      onClose();
       onDeleteAccount();
     }
   };
@@ -99,7 +105,7 @@ const Settings: React.FC<SettingsProps> = ({
                   </button>
                 )}
                 <button
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   className="w-full flex items-center justify-between px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3">

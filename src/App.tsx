@@ -40,9 +40,24 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setIsGuestMode(false);
+    setIsSettingsOpen(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentWorkspaceId');
+    setTodos([]);
+    setBacklogTodos([]);
+    setMemos([]);
+    setCategories([]);
+    setWorkspaces([]);
+    setCurrentWorkspaceId('');
+  };
+
   const handleDeleteAccount = async () => {
     try {
       await api.delete('/users/me');
+      setIsSettingsOpen(false);
       handleLogout();
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -238,21 +253,6 @@ function App() {
       console.error('Signup error:', error);
       alert('회원가입에 실패했습니다. 다시 시도해주세요.');
     }
-  };
-
-  const handleLogout = () => {
-    if (!isGuestMode) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('currentWorkspaceId');
-    }
-    setIsLoggedIn(false);
-    setIsGuestMode(false);  // 게스트 모드 해제
-    setTodos([]);
-    setBacklogTodos([]);
-    setMemos([]);
-    setCategories([]);
-    setWorkspaces([]);
-    setCurrentWorkspaceId('');
   };
 
   const handleGuestStart = () => {

@@ -450,13 +450,21 @@ function App() {
 
   const updateBacklogTodoCategory = async (id: string, categoryId?: string | null) => {
     try {
+      if (isGuestMode) {
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, categoryId: categoryId || null } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
       if (todoToUpdate) {
-        const updatedTodo = {
+        const response = await api.put(`/backlog/${id}`, {
           ...todoToUpdate,
           categoryId: categoryId || null
-        };
-        const response = await api.put(`/backlog/${id}`, updatedTodo);
+        });
         setBacklogTodos((prevTodos) =>
           prevTodos.map((todo) => (todo._id === id ? response.data : todo))
         );
@@ -599,6 +607,15 @@ function App() {
 
   const updateTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
     try {
+      if (isGuestMode) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, priority } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = todos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/todos/${id}`, {
@@ -730,6 +747,15 @@ function App() {
 
   const updateBacklogTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
     try {
+      if (isGuestMode) {
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, priority } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/backlog/${id}`, {

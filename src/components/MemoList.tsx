@@ -270,7 +270,7 @@ const MemoList: React.FC<MemoListProps> = ({
                         }}
                         className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
                       >
-                        카테고리 없음
+                        없음
                       </button>
                       {categories.map(category => (
                         <button

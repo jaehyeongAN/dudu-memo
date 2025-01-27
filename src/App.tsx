@@ -16,6 +16,8 @@ import api from './api';
 import { Todo, Memo, Category, BacklogTodo, Workspace } from './types';
 import { getTodoStats } from './utils/todoStats';
 import Settings from './components/Settings';
+import { useSwipeable } from 'react-swipeable';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -36,10 +38,26 @@ function App() {
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setIsGuestMode(false);
+    setIsSettingsOpen(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentWorkspaceId');
+    setTodos([]);
+    setBacklogTodos([]);
+    setMemos([]);
+    setCategories([]);
+    setWorkspaces([]);
+    setCurrentWorkspaceId('');
+  };
 
   const handleDeleteAccount = async () => {
     try {
       await api.delete('/users/me');
+      setIsSettingsOpen(false);
       handleLogout();
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -235,21 +253,6 @@ function App() {
       console.error('Signup error:', error);
       alert('회원가입에 실패했습니다. 다시 시도해주세요.');
     }
-  };
-
-  const handleLogout = () => {
-    if (!isGuestMode) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('currentWorkspaceId');
-    }
-    setIsLoggedIn(false);
-    setIsGuestMode(false);  // 게스트 모드 해제
-    setTodos([]);
-    setBacklogTodos([]);
-    setMemos([]);
-    setCategories([]);
-    setWorkspaces([]);
-    setCurrentWorkspaceId('');
   };
 
   const handleGuestStart = () => {
@@ -450,13 +453,21 @@ function App() {
 
   const updateBacklogTodoCategory = async (id: string, categoryId?: string | null) => {
     try {
+      if (isGuestMode) {
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, categoryId: categoryId || null } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
       if (todoToUpdate) {
-        const updatedTodo = {
+        const response = await api.put(`/backlog/${id}`, {
           ...todoToUpdate,
           categoryId: categoryId || null
-        };
-        const response = await api.put(`/backlog/${id}`, updatedTodo);
+        });
         setBacklogTodos((prevTodos) =>
           prevTodos.map((todo) => (todo._id === id ? response.data : todo))
         );
@@ -599,6 +610,15 @@ function App() {
 
   const updateTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
     try {
+      if (isGuestMode) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, priority } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = todos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/todos/${id}`, {
@@ -611,6 +631,35 @@ function App() {
       }
     } catch (error) {
       console.error('Error updating todo priority:', error);
+    }
+  };
+
+  const updateTodoDate = async (id: string, newDate: Date) => {
+    try {
+      if (isGuestMode) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, date: newDate } : todo
+          )
+        );
+        return;
+      }
+
+      const todoToUpdate = todos.find((todo) => todo._id === id);
+      if (todoToUpdate) {
+        const response = await api.put(`/todos/${id}`, {
+          ...todoToUpdate,
+          date: newDate,
+        });
+        
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...response.data, date: new Date(response.data.date) } : todo
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating todo date:', error);
     }
   };
 
@@ -730,6 +779,15 @@ function App() {
 
   const updateBacklogTodoPriority = async (id: string, priority: 'high' | 'medium' | 'low') => {
     try {
+      if (isGuestMode) {
+        setBacklogTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === id ? { ...todo, priority } : todo
+          )
+        );
+        return;
+      }
+
       const todoToUpdate = backlogTodos.find((todo) => todo._id === id);
       if (todoToUpdate) {
         const response = await api.put(`/backlog/${id}`, {
@@ -1089,6 +1147,34 @@ function App() {
     }
   };
 
+  // 달 변경 핸들러 추가
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    const newDate = new Date(selectedDate);
+    
+    if (direction === 'next') {
+      setCalendarAnimation('slide-left');
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else {
+      setCalendarAnimation('slide-right');
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    
+    setSelectedDate(newDate);
+    
+    // 애니메이션 리셋
+    setTimeout(() => {
+      setCalendarAnimation('');
+    }, 300);
+  };
+
+  // 스와이프 핸들러 설정
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => handleMonthChange('next'),
+    onSwipedRight: () => handleMonthChange('prev'),
+    preventDefaultTouchmoveEvent: true,
+    trackMouse: false
+  });
+
   if (!isLoggedIn && !isGuestMode) {
     return showSignup ? (
       <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />
@@ -1157,6 +1243,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster 
+        position="bottom-center"
+        toastOptions={{
+          className: 'text-sm',
+          duration: 2000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }}
+      />
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -1205,21 +1302,32 @@ function App() {
                 }`}>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-6">
-                      <Calendar
-                        onChange={(value) => {
-                          if (value instanceof Date) {
-                            setSelectedDate(value);
-                            setIsCalendarCollapsed(true);
+                      <div
+                        {...swipeHandlers}
+                        className={`transition-transform duration-300 ease-in-out ${
+                          calendarAnimation === 'slide-left' 
+                            ? '-translate-x-full' 
+                            : calendarAnimation === 'slide-right'
+                            ? 'translate-x-full'
+                            : ''
+                        }`}
+                      >
+                        <Calendar
+                          onChange={(value) => {
+                            if (value instanceof Date) {
+                              setSelectedDate(value);
+                              setIsCalendarCollapsed(true);
+                            }
+                          }}
+                          value={selectedDate}
+                          tileContent={tileContent}
+                          className="w-full border-none"
+                          calendarType="US"
+                          tileClassName={({ date, view }) => 
+                            view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
                           }
-                        }}
-                        value={selectedDate}
-                        tileContent={tileContent}
-                        className="w-full border-none"
-                        calendarType="US"
-                        tileClassName={({ date, view }) => 
-                          view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
-                        }
-                      />
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1236,6 +1344,7 @@ function App() {
                   updateTodoText={updateTodoText}
                   updateTodoDescription={updateTodoDescription}
                   updateTodoPriority={updateTodoPriority}
+                  updateTodoDate={updateTodoDate}
                   addSubTodo={addSubTodo}
                   updateSubTodo={updateSubTodo}
                   toggleSubTodo={toggleSubTodo}

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { CalendarPlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarPlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { Todo } from '../types';
+import { toast } from 'react-hot-toast';
 
 interface TodoListProps {
   todos: Todo[];
@@ -19,6 +20,7 @@ interface TodoListProps {
   toggleSubTodo: (todoId: string, subTodoId: string) => void;
   deleteSubTodo: (todoId: string, subTodoId: string) => void;
   onDateChange?: (date: Date) => void;
+  updateTodoDate: (id: string, date: Date) => void;
 }
 
 const priorityConfig = {
@@ -55,6 +57,7 @@ const TodoList: React.FC<TodoListProps> = ({
   toggleSubTodo,
   deleteSubTodo,
   onDateChange,
+  updateTodoDate,
 }) => {
   const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
@@ -135,6 +138,60 @@ const TodoList: React.FC<TodoListProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openPriorityId]);
 
+  const handlePostpone = (todo: Todo) => {
+    // 기존의 모든 토스트를 제거
+    toast.dismiss();
+    
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-2">
+        <div className="font-medium text-gray-800">할 일을 내일로 미루시겠습니까?</div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+            onClick={() => {
+              const tomorrow = addDays(todo.date, 1);
+              updateTodoDate(todo._id, tomorrow);
+              toast.dismiss(t.id);
+              toast.success(
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-white">할 일을 내일로 미뤘습니다</span>
+                </div>
+              );
+            }}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
+  };
+
+  const handleToggleTodo = (todo: Todo) => {
+    toggleTodo(todo._id);
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-white">
+          {todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉'}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div 
       className="bg-white rounded-lg shadow-sm border border-gray-200 relative overflow-hidden"
@@ -200,7 +257,7 @@ const TodoList: React.FC<TodoListProps> = ({
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <button
-                      onClick={() => toggleTodo(todo._id)}
+                      onClick={() => handleToggleTodo(todo)}
                       className={`flex-shrink-0 focus:outline-none ${
                         todo.completed ? 'text-green-500' : 'text-gray-400'
                       } hover:scale-110 transition-transform`}
@@ -257,6 +314,16 @@ const TodoList: React.FC<TodoListProps> = ({
                           </div>
                         )}
                       </div>
+                      
+                      {/* 내일로 미루기 버튼 추가 */}
+                      <button
+                        onClick={() => handlePostpone(todo)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                        title="내일로 미루기"
+                      >
+                        <ArrowRight className="w-3 h-3" />
+                        내일로 미루기
+                      </button>
                     </div>
                   )}
 

@@ -177,3 +177,21 @@ input:focus, textarea:focus {
   text-decoration: none;
   cursor: default;
 }
+
+/* 캘린더 스와이프 애니메이션 */
+.slide-left {
+  transform: translateX(-100%);
+}
+
+.slide-right {
+  transform: translateX(100%);
+}
+
+.calendar-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-wrapper {
+  transition: transform 0.3s ease-in-out;
+}

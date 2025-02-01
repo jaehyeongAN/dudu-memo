@@ -157,7 +157,7 @@ const TodoList: React.FC<TodoListProps> = ({
           <button
             className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
             onClick={() => {
-              const tomorrow = addDays(todo.date, 1);
+              const tomorrow = addDays(selectedDate, 1);
               updateTodoDate(todo._id, tomorrow);
               toast.dismiss(t.id);
               toast.success(

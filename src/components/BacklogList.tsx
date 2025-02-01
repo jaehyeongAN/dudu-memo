@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { PackagePlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
+import { PackagePlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, Tag, X, CalendarPlus } from 'lucide-react';
 import { BacklogTodo, Category } from '../types';
 import CategoryManager from './CategoryManager';
 import { toast } from 'react-hot-toast';
+import { format } from 'date-fns';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
 interface BacklogListProps {
   todos: BacklogTodo[];
@@ -25,6 +28,7 @@ interface BacklogListProps {
   onUpdateCategory: (id: string, name: string, color: string) => void;
   onDeleteCategory: (id: string) => void;
   onSelectCategory: (categoryId: string | null) => void;
+  onMoveToTodo: (id: string, date: Date) => void;
 }
 
 const priorityConfig = {
@@ -66,9 +70,13 @@ const BacklogList: React.FC<BacklogListProps> = ({
   onUpdateCategory,
   onDeleteCategory,
   onSelectCategory,
+  onMoveToTodo,
 }) => {
   const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const getCategory = (categoryId?: string) => {
     return categories.find(cat => cat._id === categoryId);
@@ -135,6 +143,59 @@ const BacklogList: React.FC<BacklogListProps> = ({
         </span>
       </div>
     );
+  };
+
+  const handleMoveToTodo = (todoId: string) => {
+    setSelectedTodoId(todoId);
+    setIsCalendarOpen(true);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    const todo = todos.find(t => t._id === selectedTodoId);
+    
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          해당 백로그를 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => {
+              setIsCalendarOpen(false);
+              setSelectedTodoId(null);
+              setSelectedDate(null);
+              toast.dismiss(t.id);
+            }}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+            onClick={() => {
+              onMoveToTodo(selectedTodoId!, date);
+              setIsCalendarOpen(false);
+              setSelectedTodoId(null);
+              setSelectedDate(null);
+              toast.dismiss(t.id);
+              toast.success('할 일이 캘린더에 등록되었습니다.');
+            }}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
   };
 
   return (
@@ -318,6 +379,15 @@ const BacklogList: React.FC<BacklogListProps> = ({
                           </div>
                         )}
                       </div>
+
+                      {/* 캘린더에 등록 버튼 */}
+                      <button
+                        onClick={() => handleMoveToTodo(todo._id)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                      >
+                        <CalendarPlus className="w-3 h-3" />
+                        캘린더에 등록
+                      </button>
                     </div>
                   )}
 
@@ -390,6 +460,36 @@ const BacklogList: React.FC<BacklogListProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 달력 모달 추가 */}
+      {isCalendarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">일정 선택</h3>
+              <button
+                onClick={() => {
+                  setIsCalendarOpen(false);
+                  setSelectedTodoId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <Calendar
+              onChange={(value) => {
+                if (value instanceof Date) {
+                  handleDateSelect(value);
+                }
+              }}
+              value={selectedDate}
+              className="w-full border-none"
+              minDate={new Date()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

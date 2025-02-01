@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { CalendarPlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { CalendarPlus, Plus, Trash2, Circle, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowRight, PackagePlus } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { Todo } from '../types';
 import { toast } from 'react-hot-toast';
@@ -21,6 +21,7 @@ interface TodoListProps {
   deleteSubTodo: (todoId: string, subTodoId: string) => void;
   onDateChange?: (date: Date) => void;
   updateTodoDate: (id: string, date: Date) => void;
+  onMoveToBacklog: (id: string) => void;
 }
 
 const priorityConfig = {
@@ -58,6 +59,7 @@ const TodoList: React.FC<TodoListProps> = ({
   deleteSubTodo,
   onDateChange,
   updateTodoDate,
+  onMoveToBacklog,
 }) => {
   const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
@@ -192,6 +194,43 @@ const TodoList: React.FC<TodoListProps> = ({
     );
   };
 
+  const handleMoveToBacklog = (todoId: string) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          해당 할 일을 백로그로 이동하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+            onClick={() => {
+              onMoveToBacklog(todoId);
+              toast.dismiss(t.id);
+              toast.success('할 일을 백로그에 보관하였습니다.');
+            }}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
+  };
+
   return (
     <div 
       className="bg-white rounded-lg shadow-sm border border-gray-200 relative overflow-hidden"
@@ -323,6 +362,15 @@ const TodoList: React.FC<TodoListProps> = ({
                       >
                         <ArrowRight className="w-3 h-3" />
                         내일로 미루기
+                      </button>
+
+                      {/* 백로그로 이동 버튼 */}
+                      <button
+                        onClick={() => handleMoveToBacklog(todo._id)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                      >
+                        <PackagePlus className="w-3 h-3" />
+                        백로그에 보관
                       </button>
                     </div>
                   )}

@@ -748,6 +748,77 @@ app.delete('/api/users/me', auth, async (req, res) => {
   }
 });
 
+// 할 일을 백로그로 이동하는 엔드포인트
+app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ 
+      _id: req.params.id, 
+      userId: req.userId,
+      workspaceId: req.workspaceId 
+    });
+    
+    if (!todo) {
+      return res.status(404).json({ message: 'Todo not found' });
+    }
+
+    // 새로운 백로그 항목 생성
+    const newBacklogTodo = new BacklogTodo({
+      text: todo.text,
+      completed: todo.completed,
+      description: todo.description,
+      subTodos: todo.subTodos,
+      priority: todo.priority,
+      userId: req.userId,
+      workspaceId: req.workspaceId,
+      categoryId: null // 초기에는 카테고리 없음
+    });
+    
+    await newBacklogTodo.save();
+    await Todo.findByIdAndDelete(req.params.id);
+
+    res.json(newBacklogTodo);
+  } catch (error) {
+    logger.error('Error moving todo to backlog:', error);
+    res.status(500).json({ message: 'Error moving todo to backlog' });
+  }
+});
+
+// 백로그를 할 일로 이동하는 엔드포인트
+app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
+  try {
+    const backlogTodo = await BacklogTodo.findOne({ 
+      _id: req.params.id, 
+      userId: req.userId,
+      workspaceId: req.workspaceId 
+    });
+    
+    if (!backlogTodo) {
+      return res.status(404).json({ message: 'Backlog todo not found' });
+    }
+
+    // 새로운 할 일 생성
+    const newTodo = new Todo({
+      text: backlogTodo.text,
+      completed: backlogTodo.completed,
+      description: backlogTodo.description,
+      subTodos: backlogTodo.subTodos,
+      priority: backlogTodo.priority,
+      date: req.body.date,
+      userId: req.userId,
+      workspaceId: req.workspaceId
+    });
+    await newTodo.save();
+
+    // 백로그 항목 삭제
+    await BacklogTodo.findByIdAndDelete(req.params.id);
+
+    res.json(newTodo);
+  } catch (error) {
+    logger.error('Error moving backlog to todo:', error);
+    res.status(500).json({ message: 'Error moving backlog to todo' });
+  }
+});
+
 // SPA를 위한 catch-all 라우트
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));

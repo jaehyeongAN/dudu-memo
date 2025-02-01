@@ -18,6 +18,7 @@ import { getTodoStats } from './utils/todoStats';
 import Settings from './components/Settings';
 import { useSwipeable } from 'react-swipeable';
 import { Toaster } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
@@ -1175,6 +1176,68 @@ function App() {
     trackMouse: false
   });
 
+  const moveBacklogToTodo = async (id: string, date: Date) => {
+    try {
+      if (isGuestMode) {
+        const backlogTodo = backlogTodos.find(todo => todo._id === id);
+        if (backlogTodo) {
+          const newTodo = {
+            _id: `guest-${Date.now()}`,
+            text: backlogTodo.text,
+            completed: backlogTodo.completed,
+            description: backlogTodo.description,
+            subTodos: backlogTodo.subTodos,
+            priority: backlogTodo.priority,
+            date: date,
+            workspaceId: 'guest',
+            userId: 'guest'
+          };
+          setTodos(prev => [...prev, newTodo]);
+          setBacklogTodos(prev => prev.filter(todo => todo._id !== id));
+        }
+        return;
+      }
+
+      const response = await api.post(`/backlog/${id}/move-to-todo`, { date });
+      setTodos(prev => [...prev, response.data]);
+      setBacklogTodos(prev => prev.filter(todo => todo._id !== id));
+    } catch (error) {
+      console.error('Error moving backlog to todo:', error);
+    }
+  };
+
+  const moveTodoToBacklog = async (id: string) => {
+    try {
+      if (isGuestMode) {
+        const todo = todos.find(todo => todo._id === id);
+        if (todo) {
+          const newBacklogTodo = {
+            _id: `guest-${Date.now()}`,
+            text: todo.text,
+            completed: todo.completed,
+            description: todo.description,
+            subTodos: todo.subTodos,
+            priority: todo.priority,
+            workspaceId: 'guest',
+            userId: 'guest',
+            categoryId: null
+          };
+          setBacklogTodos(prev => [...prev, newBacklogTodo]);
+          setTodos(prev => prev.filter(t => t._id !== id));
+          toast.success('할 일이 백로그로 이동되었습니다.');
+        }
+        return;
+      }
+
+      const response = await api.post(`/todos/${id}/move-to-backlog`);
+      setBacklogTodos(prev => [...prev, response.data]);
+      setTodos(prev => prev.filter(todo => todo._id !== id));
+    } catch (error) {
+      console.error('Error moving todo to backlog:', error);
+      toast.error('백로그로 이동하는 중 오류가 발생했습니다.');
+    }
+  };
+
   if (!isLoggedIn && !isGuestMode) {
     return showSignup ? (
       <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />
@@ -1350,6 +1413,7 @@ function App() {
                   toggleSubTodo={toggleSubTodo}
                   deleteSubTodo={deleteSubTodo}
                   onDateChange={setSelectedDate}
+                  onMoveToBacklog={moveTodoToBacklog}
                 />
               </div>
             </div>
@@ -1377,6 +1441,7 @@ function App() {
               onUpdateCategory={handleUpdateCategory}
               onDeleteCategory={handleDeleteCategory}
               onSelectCategory={setSelectedCategoryId}
+              onMoveToTodo={moveBacklogToTodo}
             />
           </div>
         ) : (

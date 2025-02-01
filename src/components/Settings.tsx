@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { LogOut, UserX, X } from 'lucide-react';
+import { LogOut, UserX, X, ChevronRight } from 'lucide-react';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -81,7 +81,7 @@ const Settings: React.FC<SettingsProps> = ({
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {isGuestMode && (
               <div className="p-4 bg-yellow-50 rounded-lg">
                 <p className="text-sm text-yellow-800">
@@ -90,7 +90,7 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <h3 className="font-medium text-gray-900">계정</h3>
               <div className="space-y-2">
                 {!isGuestMode && (
@@ -116,11 +116,53 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <h3 className="font-medium text-gray-900">앱 정보</h3>
-              <div className="px-4 py-3 space-y-2 text-sm text-gray-500">
-                <p>버전: 1.0.0</p>
-                <p>© 2025 Doo!Du. All rights reserved.</p>
+              <div className="rounded-lg border border-gray-200 divide-y divide-gray-200">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm text-gray-600">버전</span>
+                  <span className="text-sm font-medium text-gray-900">1.0.0</span>
+                </div>
+                <a 
+                  href="https://www.doodu.kr" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                >
+                  <span className="text-sm text-gray-600">웹사이트</span>
+                  <span className="text-sm font-medium text-indigo-600">doodu.kr</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900">법적 고지</h3>
+              <div className="rounded-lg border border-gray-200 divide-y divide-gray-200">
+                <a 
+                  href="https://sites.google.com/view/doodu/terms-conditions" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                >
+                  <span className="text-sm text-gray-600">이용약관</span>
+                  <span className="text-sm text-gray-400">
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </a>
+                <a 
+                  href="https://sites.google.com/view/doodu/privacy-policy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                >
+                  <span className="text-sm text-gray-600">개인정보처리방침</span>
+                  <span className="text-sm text-gray-400">
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </a>
+                <div className="px-4 py-3">
+                  <p className="text-xs text-gray-500">© 2025 Doo!Du. All rights reserved.</p>
+                </div>
               </div>
             </div>
           </div>

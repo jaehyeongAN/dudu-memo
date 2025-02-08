@@ -1,79 +1,123 @@
 {
-  "name": "DuDu Memo",
-  "short_name": "DuDu",
-  "description": "두두메모에서 당신의 할 일과 메모를 관리하세요",
+  "name": "Doo!Du",
+  "short_name": "Doo!Du",
+  "description": "복잡한 계획은 잊으세요. 단순하게 정리하면 하루가 더 쉬워집니다. ✅",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "theme_color": "#ffffff",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
       "src": "screenshots/desktop.png",
-      "sizes": "1679x1257",
+      "sizes": "3574x2080",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "DuDu Memo 데스크톱 화면"
+      "label": "Desktop screenshot"
     },
     {
-      "src": "screenshots/mobile-todo.png",
-      "sizes": "542x1140",
+      "src": "screenshots/mobile-todo-1.png",
+      "sizes": "1080x1920",
       "type": "image/png",
-      "label": "할 일 관리 화면"
+      "label": "Todo1 screenshot"
     },
     {
-      "src": "screenshots/mobile-memo.png",
-      "sizes": "542x1140",
+      "src": "screenshots/mobile-todo-2.png",
+      "sizes": "1080x1920",
       "type": "image/png",
-      "label": "메모 작성 화면"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "할 일 추가",
-      "short_name": "할 일",
-      "description": "새로운 할 일 추가",
-      "url": "/?tab=todo",
-      "icons": [{ "src": "icons/todo.png", "sizes": "192x192" }]
+      "label": "Todo2 screenshot"
     },
     {
-      "name": "메모 작성",
-      "short_name": "메모",
-      "description": "새로운 메모 작성",
-      "url": "/?tab=memo",
-      "icons": [{ "src": "icons/memo.png", "sizes": "192x192" }]
+      "src": "screenshots/mobile-memo-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Memo1 screenshot"
+    },
+    {
+      "src": "screenshots/mobile-memo-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Memo2 screenshot"
+    },
+    {
+      "src": "screenshots/mobile-backlog.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Backlog screenshot"
+    },
+    {
+      "src": "screenshots/mobile-workspace.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Workspace screenshot"
+    },
+    {
+      "src": "screenshots/mobile-web.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Workspace screenshot"
     }
   ],
   "categories": ["productivity", "utilities"],

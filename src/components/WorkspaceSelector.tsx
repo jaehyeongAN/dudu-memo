@@ -74,7 +74,7 @@ const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm md:text-base"
       >
-        <span className="font-medium truncate max-w-[120px] md:max-w-[200px]">
+        <span className="font-medium truncate max-w-[110px] md:max-w-[200px]">
           {currentWorkspace?.name || '워크스페이스'}
         </span>
         <ChevronDown className="w-4 h-4 flex-shrink-0" />
@@ -83,8 +83,8 @@ const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
       {/* 워크스페이스 목록 드롭다운 */}
       {isDropdownOpen && (
         <div className="fixed inset-x-0 top-16 mx-4 md:mx-0 md:absolute md:right-0 md:top-full md:mt-2 md:w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[80vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">워크스페이스</span>
+          <div className="sticky top-0 bg-white p-3 flex justify-between items-center">
+            <span className="text-base font-semibold text-gray-700">워크스페이스</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {

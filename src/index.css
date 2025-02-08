@@ -11,6 +11,9 @@ body {
 .react-calendar {
   @apply w-full max-w-full bg-white border-none font-sans;
   line-height: 1.125em;
+  width: 100%;
+  border: none !important;
+  font-family: inherit;
 }
 
 .react-calendar__navigation button {
@@ -19,15 +22,19 @@ body {
 
 .react-calendar__navigation button:enabled:hover,
 .react-calendar__navigation button:enabled:focus {
-  @apply bg-indigo-50;
+  background-color: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__navigation button[disabled] {
   @apply bg-gray-50;
 }
 
-.react-calendar__month-view__days__day--weekend {
-  @apply text-red-600;
+.react-calendar__month-view__days__day--weekend:nth-child(7n) {
+  color: #3B82F6;
+}
+
+.react-calendar__month-view__days__day--weekend:not(:nth-child(7n)) {
+  color: #EF4444;
 }
 
 .react-calendar__tile {
@@ -37,25 +44,30 @@ body {
 
 .react-calendar__tile:enabled:hover,
 .react-calendar__tile:enabled:focus {
-  @apply bg-indigo-50 text-indigo-600 rounded-lg;
+  background: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__tile--now {
   @apply bg-yellow-50 rounded-lg font-bold text-indigo-600;
+  background: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__tile--now:enabled:hover,
 .react-calendar__tile--now:enabled:focus {
   @apply bg-yellow-100 rounded-lg font-bold text-indigo-700;
+  background: #E5E7EB !important; /* gray-200 */
 }
 
 .react-calendar__tile--active {
   @apply bg-indigo-500 rounded-lg font-bold text-white;
+  background: #EEF2FF !important; /* indigo-50 */
+  color: #4F46E5 !important; /* indigo-600 */
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
   @apply bg-indigo-600 text-white;
+  background: #E0E7FF !important; /* indigo-100 */
 }
 
 /* Calendar Tile Content Styles */
@@ -152,4 +164,136 @@ input:focus, textarea:focus {
 
 .slide-in {
   animation: slideIn 0.3s ease-out forwards;
+}
+
+/* 요일 헤더 스타일 */
+.react-calendar__month-view__weekdays {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 요일 밑줄 제거 */
+.react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+  cursor: default;
+}
+
+/* 캘린더 스와이프 애니메이션 */
+.slide-left {
+  transform: translateX(-100%);
+}
+
+.slide-right {
+  transform: translateX(100%);
+}
+
+.calendar-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-wrapper {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* TipTap 스타일 */
+.ProseMirror {
+  @apply min-h-full outline-none text-gray-900;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold;
+}
+
+.ProseMirror p {
+  @apply leading-relaxed;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  @apply list-none p-0 my-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start my-0.5;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  @apply mr-2 mt-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  @apply flex-1;
+}
+
+.ProseMirror ul:not([data-type="taskList"]),
+.ProseMirror ol {
+  @apply pl-5 my-1;
+}
+
+.ProseMirror li {
+  @apply my-0.5;
+}
+
+.ProseMirror mark {
+  @apply bg-yellow-200 px-0.5 rounded;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-2;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-100 p-3 rounded-lg font-mono text-sm my-2 text-gray-900;
+}
+
+/* TipTap 모바일 최적화 스타일 */
+@media (max-width: 768px) {
+  .ProseMirror {
+    @apply text-base;
+  }
+
+  .ProseMirror h1 {
+    @apply text-xl;
+  }
+
+  .ProseMirror h2 {
+    @apply text-lg;
+  }
+
+  .ProseMirror blockquote {
+    @apply text-sm;
+  }
+
+  .ProseMirror pre {
+    @apply text-xs p-2 text-gray-900;
+  }
+}
+
+/* 터치 최적화 */
+@media (pointer: coarse) {
+  .ProseMirror {
+    @apply touch-manipulation;
+  }
+}
+
+/* 에디터 툴바 스크롤바 숨김 */
+.editor-toolbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.editor-toolbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dudu-memo-v1';
+const CACHE_NAME = 'doo!du-v250208';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -120,7 +120,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('DuDu Memo', options)
+    self.registration.showNotification('Doo!Du', options)
       .catch((error) => console.error('Push notification failed:', error))
   );
 });

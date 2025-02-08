@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.doodu.www.twa",
+      "sha256_cert_fingerprints":
+        ["22:1E:B3:8E:B0:77:BE:7D:EC:28:56:0A:BC:E2:42:2F:B5:F2:D3:28:CE:DB:A8:CA:89:2F:4A:5D:53:9B:E7:97"]
+    }
+  }
+]

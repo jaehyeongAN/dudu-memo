@@ -54,10 +54,9 @@ const WorkspaceSchema = new mongoose.Schema({
 
 const Workspace = mongoose.model('Workspace', WorkspaceSchema);
 
-// User Schema 수정
+// User Schema 수정 - birthdate 필드 제거
 const UserSchema = new mongoose.Schema({
   name: String,
-  birthdate: Date,
   email: { type: String, unique: true },
   password: String,
   currentWorkspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' }
@@ -70,8 +69,9 @@ const CategorySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
   name: String,
-  color: String,
+  color: String
 });
+
 
 const Category = mongoose.model('Category', CategorySchema);
 
@@ -108,7 +108,8 @@ const BacklogTodoSchema = new mongoose.Schema({
     type: String,
     enum: ['high', 'medium', 'low'],
     default: 'medium'
-  }
+  },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
 });
 
 const BacklogTodo = mongoose.model('BacklogTodo', BacklogTodoSchema);
@@ -119,7 +120,7 @@ const MemoSchema = new mongoose.Schema({
   title: String,
   content: String,
   lastEdited: { type: Date, default: Date.now },
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null }
 });
 
 const Memo = mongoose.model('Memo', MemoSchema);
@@ -231,9 +232,9 @@ app.put('/api/users/current-workspace', auth, async (req, res) => {
 // 기존 API 엔드포인트들 수정 - workspaceId 추가
 app.post('/api/signup', async (req, res) => {
   try {
-    const { name, birthdate, email, password } = req.body;
+    const { name, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, birthdate, email, password: hashedPassword });
+    const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
     // 기본 워크스페이스 생성
@@ -262,35 +263,89 @@ app.post('/api/signup', async (req, res) => {
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
-        title: '🦉 두두메모 사용법',
-        content: '1. 할 일: 캘린더를 통해 날짜별로 할 일을 관리할 수 있습니다.\n2. 백로그: 날짜에 구애받지 않고 자유롭게 할 일을 관리할 수 있습니다.\n3. 메모: 카테고리별로 메모를 작성하고 관리할 수 있습니다.',
+        title: '✔︎ Doo!Du 소개 글 ✨',
+        content: '"Think Simple, Act Fast!"\n\n세상에는 이미 다양한 투두/메모 서비스가 많습니다. 그럼에도 ✔︎ Doo!Du는 가장 쉽고 빠르게 일의 본질에 집중할 수 있도록 돕기 위해 만들어졌습니다.\n\n	•	캘린더 기반 할 일 관리로 하루를 체계적으로 설계하고,\n	•	백로그에 아이디어와 할 일을 잊지 않고 보관하며,\n	•	실시간 저장되는 메모로 생각을 놓치지 않아요.\n\n모든 기능이 직관적이고 빠르게 설계되어, 누구나 쉽게 사용할 수 있어요.\n지금 Doo!Du와 함께 더 정리된 일상을 만들어보세요! 🗓️✨',
+        categoryId: categories[2]._id,
+        lastEdited: new Date()
+      },
+      {
+        userId: user._id,
+        workspaceId: defaultWorkspace._id,
+        title: '앱 마케팅 홍보 방안 회의 정리 💬',
+        content: '[회의 주제]: Doo!Du의 사용자층 확대 방안\n\n1️⃣ SNS 마케팅\n	•	사용자 후기(스크린샷 + 사용 예시) 중심 콘텐츠 제작\n	•	TikTok, Instagram Reels 활용한 짧고 강렬한 홍보 영상 제작 🎥\n\n2️⃣ 협업 캠페인\n	•	생산성 관련 YouTuber/Influencer와 협업 콘텐츠 제작\n	•	앱 스토어 리뷰 이벤트 진행 🎁\n\n3️⃣ 광고 타겟팅 전략\n	•	25~40대 직장인을 주 타겟으로 설정\n	•	생산성 앱 관심도가 높은 사용자 기반 세부 타겟팅\n\n[다음 행동 아이템]: 홍보 영상 시나리오 작성, 협업 대상 리스트업',
         categoryId: categories[0]._id,
         lastEdited: new Date()
       },
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
-        title: '🔥 메모 작성 팁',
-        content: '- 메모에 카테고리를 지정하여 체계적으로 관리하세요\n- 중요한 메모는 상단에 고정할 수 있습니다\n- 메모 내용은 실시간으로 저장됩니다',
-        categoryId: categories[2]._id,
+        title: '새해 목표 리스트 작성 🎯',
+        content: '[2025년 목표]\n1️⃣ 운동: 주 3회 이상 규칙적으로 운동하기 🏋️‍♀️\n	•	헬스장 등록 완료 (1월 중)\n	•	5km 달리기 기록 목표 세우기\n\n2️⃣ 취미 활동: 새로운 취미 2가지 배우기 🎨\n	•	디지털 드로잉 클래스 등록\n	•	주말마다 1시간 요리 연습\n\n3️⃣ 자기계발: 매달 한 권의 책 읽기 📚\n	•	1월 추천 도서: "Atomic Habits"\n\n이제 목표를 세웠으니, 차근차근 실천하며 나아가자! 💪',
+        categoryId: categories[1]._id,
         lastEdited: new Date()
       }
     ];
     await Memo.insertMany(sampleMemos);
 
     const sampleTodos = [
+      // {
+      //   userId: user._id,
+      //   workspaceId: defaultWorkspace._id,
+      //   text: '👋 환영합니다! Doo!Du에 오신 것을 환영해요!',
+      //   completed: false,
+      //   date: today,
+      //   description: '✔︎ Doo!Du를 통해 쉽고 빠르게 당신의 할 일과 아이디어를 정리해보세요!',
+      //   priority: 'high',
+      //   subTodos: [
+      //     { text: '🗓️ 캘린더 기반 할 일 관리: 오늘의 계획부터 장기 목표까지 체계적으로 정리!', completed: false },
+      //     { text: '📦 백로그 보관소: 일정에 등록하기 부담스러운 일은 백로그로!', completed: false },
+      //     { text: '✏️ 메모: 떠오르는 생각을 빠르게 적고, 아이디어를 카테고리별로 깔끔하게!', completed: false },
+      //     { text: '🏢 워크스페이스: 개인, 업무, 프로젝트 등 공간별로 완벽히 분리된 관리!', completed: false }
+      //   ]
+      // },
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
-        text: '두두메모 둘러보기',
+        text: 'Doo!Du 살펴보기 👋',
         completed: false,
         date: today,
-        description: '새로운 할 일 관리 도구인 두두메모의 주요 기능을 살펴봅니다.',
+        description: '쉽고 빠르게 당신의 할 일과 아이디어를 정리해보세요!',
         priority: 'high',
         subTodos: [
-          { text: '✅ "할 일" 살펴보기', completed: false },
-          { text: '📦 "백로그" 살펴보기', completed: false },
-          { text: '📝 "메모" 살펴보기', completed: false }
+          { text: '🔥 회원가입 및 로그인하기', completed: true },
+          { text: '🗓️ 캘린더에 할 일 등록하기', completed: false },
+          { text: '📦 백로그에 일정 보관해놓기', completed: false },
+          { text: '✏️ 메모에 아이디어 작성하기', completed: false },
+          { text: '🏢 워크스페이스에 분리하기', completed: false }
+        ]
+      },
+      // {
+      //   userId: user._id,
+      //   workspaceId: defaultWorkspace._id,
+      //   text: '두두 둘러보기',
+      //   completed: false,
+      //   date: today,
+      //   description: '"Thik Simple, Act Fast!" 쉽고 빠른 투두/메모 관리 도구인 두두의 주요 기능을 살펴봅니다.',
+      //   priority: 'low',
+      //   subTodos: [
+      //     { text: '1️⃣ 회원가입 및 로그인하기', completed: true },
+      //     { text: '2️⃣ "할 일" 살펴보기', completed: false },
+      //     { text: '3️⃣ "백로그" 살펴보기', completed: false },
+      //     { text: '4️⃣ "메모" 살펴보기', completed: false },
+      //     { text: '5️⃣ "워크스페이스" 살펴보기', completed: false }
+      //   ]
+      // },
+      {
+        userId: user._id,
+        workspaceId: defaultWorkspace._id,
+        text: 'Doo!Du 별점 5점 주기 🌟',
+        completed: true,
+        date: today,
+        description: '"심플하지만 생산성이 대단해!" 라고 리뷰도 달아줄까?',
+        priority: 'low',
+        subTodos: [
+          { text: '별점 5점 주기!', completed: true },
+          { text: '피드백/리뷰 작성하기!', completed: true }
         ]
       }
     ];
@@ -302,11 +357,43 @@ app.post('/api/signup', async (req, res) => {
         workspaceId: defaultWorkspace._id,
         text: '백로그 활용하기 👏',
         completed: false,
-        description: '언제든 해야 할 일들을 백로그에 등록해보세요.',
+        description: '일정에 구애받지 않고 해야할 일을 백로그에 등록해보세요.',
         priority: 'medium',
+        categoryId: categories[2]._id,
         subTodos: [
-          { text: '🗂️ 우선순위 지정해보기', completed: false },
-          { text: '✅ 하위 할 일 추가해보기', completed: false }
+          { text: '✅ 백로그 추가해보기', completed: false },
+          { text: '📌 우선순위 지정해보기 (우선순위 정렬)', completed: false },
+          { text: '🗂️ 카테고리 관리하기 (카테고리별 필터링) ', completed: false },
+        ]
+      },
+      {
+        userId: user._id,
+        workspaceId: defaultWorkspace._id,
+        text: '책 읽기 리스트 📖',
+        completed: false,
+        description: '올해 꼭 읽고 싶은 책들',
+        priority: 'medium',
+        categoryId: categories[1]._id,
+        subTodos: [
+          { text: '데미안', completed: false },
+          { text: '어린왕자', completed: false },
+          { text: '모모', completed: true },
+        ]
+      },
+      {
+        userId: user._id,
+        workspaceId: defaultWorkspace._id,
+        text: '✔︎ Doo!Du 웹/앱 > UI/UX 개편하기',
+        completed: true,
+        description: '전체적으로 UI/UX 개편해야할 점 정리',
+        priority: 'medium',
+        categoryId: categories[0]._id,
+        subTodos: [
+          { text: '사용자 피드백 분석 결과 정리', completed: true },
+          { text: '네비게이션 구조 개선 제안서 작성', completed: true },
+          { text: '새로운 홈 화면 와이어프레임 제작', completed: true },
+          { text: '다크 모드 디자인 적용 시안 제작', completed: true },
+          { text: '버튼과 아이콘 크기 재조정 (접근성 고려)', completed: true },
         ]
       }
     ];
@@ -320,9 +407,18 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
+// JWT 토큰 생성 함수 수정
+const generateToken = (userId, rememberMe = false) => {
+  return jwt.sign(
+    { userId }, 
+    process.env.JWT_SECRET,
+    { expiresIn: rememberMe ? '30d' : '1h' }
+  );
+};
+
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       logger.warn(`Login attempt failed: User not found (${email})`);
@@ -333,8 +429,8 @@ app.post('/api/login', async (req, res) => {
       logger.warn(`Login attempt failed: Invalid credentials (${email})`);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    logger.info(`User logged in: ${email}`);
+    const token = generateToken(user._id, rememberMe);
+    logger.info(`User logged in: ${email} (Remember me: ${rememberMe})`);
     res.json({ 
       token, 
       userId: user._id,
@@ -406,15 +502,19 @@ app.delete('/api/categories/:id', auth, async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
-    // 카테고리가 삭제되면 관련 메모의 categoryId를 null로 설정
-    await Memo.updateMany(
-      { 
-        userId: req.userId,
-        workspaceId: req.workspaceId,
-        categoryId: req.params.id 
-      },
-      { $unset: { categoryId: "" } }
-    );
+
+    // 관련된 메모와 백로그 항목의 categoryId를 null로 설정
+    await Promise.all([
+      Memo.updateMany(
+        { categoryId: req.params.id },
+        { $set: { categoryId: null } }
+      ),
+      BacklogTodo.updateMany(
+        { categoryId: req.params.id },
+        { $set: { categoryId: null } }
+      )
+    ]);
+
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     logger.error('Error deleting category:', error);
@@ -645,6 +745,77 @@ app.delete('/api/users/me', auth, async (req, res) => {
   } catch (error) {
     logger.error('Error deleting account:', error);
     res.status(500).json({ message: 'Error deleting account' });
+  }
+});
+
+// 할 일을 백로그로 이동하는 엔드포인트
+app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ 
+      _id: req.params.id, 
+      userId: req.userId,
+      workspaceId: req.workspaceId 
+    });
+    
+    if (!todo) {
+      return res.status(404).json({ message: 'Todo not found' });
+    }
+
+    // 새로운 백로그 항목 생성
+    const newBacklogTodo = new BacklogTodo({
+      text: todo.text,
+      completed: todo.completed,
+      description: todo.description,
+      subTodos: todo.subTodos,
+      priority: todo.priority,
+      userId: req.userId,
+      workspaceId: req.workspaceId,
+      categoryId: null // 초기에는 카테고리 없음
+    });
+    
+    await newBacklogTodo.save();
+    await Todo.findByIdAndDelete(req.params.id);
+
+    res.json(newBacklogTodo);
+  } catch (error) {
+    logger.error('Error moving todo to backlog:', error);
+    res.status(500).json({ message: 'Error moving todo to backlog' });
+  }
+});
+
+// 백로그를 할 일로 이동하는 엔드포인트
+app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
+  try {
+    const backlogTodo = await BacklogTodo.findOne({ 
+      _id: req.params.id, 
+      userId: req.userId,
+      workspaceId: req.workspaceId 
+    });
+    
+    if (!backlogTodo) {
+      return res.status(404).json({ message: 'Backlog todo not found' });
+    }
+
+    // 새로운 할 일 생성
+    const newTodo = new Todo({
+      text: backlogTodo.text,
+      completed: backlogTodo.completed,
+      description: backlogTodo.description,
+      subTodos: backlogTodo.subTodos,
+      priority: backlogTodo.priority,
+      date: req.body.date,
+      userId: req.userId,
+      workspaceId: req.workspaceId
+    });
+    await newTodo.save();
+
+    // 백로그 항목 삭제
+    await BacklogTodo.findByIdAndDelete(req.params.id);
+
+    res.json(newTodo);
+  } catch (error) {
+    logger.error('Error moving backlog to todo:', error);
+    res.status(500).json({ message: 'Error moving backlog to todo' });
   }
 });
 

@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { PlusCircle, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
+import { FilePlus2, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
 import CategoryManager from './CategoryManager';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Highlight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Code, Link as LinkIcon, Highlighter } from 'lucide-react';
 
 interface MemoListProps {
   memos: Memo[];
@@ -18,6 +26,166 @@ interface MemoListProps {
   onDeleteCategory: (id: string) => void;
   onSelectCategory: (categoryId: string | null) => void;
 }
+
+const MemoEditor: React.FC<{
+  content: string;
+  onChange: (content: string) => void;
+}> = ({ content, onChange }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: '내용을 입력하세요...',
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Highlight,
+      Link.configure({
+        openOnClick: false,
+      }),
+    ],
+    content,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm prose-gray-900 max-w-none focus:outline-none prose-headings:mt-3 prose-headings:mb-2 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-blockquote:my-2 prose-pre:my-2',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    autofocus: true,
+  });
+
+  // 새로 추가: content prop이 변경될 때 에디터 내용 업데이트
+  React.useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
+  if (!editor) {
+    return null;
+  }
+
+  const MenuButton = ({ 
+    onClick, 
+    active, 
+    children,
+    title
+  }: { 
+    onClick: () => void; 
+    active?: boolean;
+    children: React.ReactNode;
+    title: string;
+  }) => (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+        editor.commands.focus();
+      }}
+      onMouseDown={(e) => e.preventDefault()}
+      className={`p-2.5 rounded-lg transition-colors touch-manipulation ${
+        active 
+          ? 'bg-indigo-50 text-indigo-600' 
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="border-b border-gray-200 overflow-x-auto editor-toolbar">
+        <div className="p-1.5 flex items-center gap-0.5 min-w-max">
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive('bold')}
+            title="굵게"
+          >
+            <Bold className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive('italic')}
+            title="기울임"
+          >
+            <Italic className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            active={editor.isActive('heading', { level: 1 })}
+            title="제목 1"
+          >
+            <Heading1 className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive('heading', { level: 2 })}
+            title="제목 2"
+          >
+            <Heading2 className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive('bulletList')}
+            title="글머리 기호"
+          >
+            <List className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive('orderedList')}
+            title="번호 매기기"
+          >
+            <ListOrdered className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive('blockquote')}
+            title="인용"
+          >
+            <Quote className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            active={editor.isActive('codeBlock')}
+            title="코드"
+          >
+            <Code className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => {
+              const url = window.prompt('URL을 입력하세요:');
+              if (url) {
+                editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+            active={editor.isActive('link')}
+            title="링크"
+          >
+            <LinkIcon className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            active={editor.isActive('highlight')}
+            title="형광펜"
+          >
+            <Highlighter className="w-5 h-5" />
+          </MenuButton>
+        </div>
+      </div>
+      <EditorContent 
+        editor={editor} 
+        className="flex-1 overflow-y-auto px-4 py-2 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:px-0"
+      />
+    </div>
+  );
+};
 
 const MemoList: React.FC<MemoListProps> = ({
   memos,
@@ -88,12 +256,29 @@ const MemoList: React.FC<MemoListProps> = ({
     }
   };
 
+  const convertPlainTextToHtml = (text: string) => {
+    if (!text) return '';
+    
+    // HTML 태그가 이미 포함되어 있는지 확인
+    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(text);
+    
+    if (hasHtmlTags) {
+      return text; // 이미 HTML이면 그대로 반환
+    }
+    
+    // 일반 텍스트를 HTML로 변환
+    return text
+      .split('\n')
+      .map(line => `<p>${line}</p>`)
+      .join('');
+  };
+
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-8rem)] gap-4">
       {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
-      <div className={`w-full md:w-1/3 flex flex-col gap-4 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
+      <div className={`w-full md:w-1/3 flex flex-col gap-3 ${activeMemo ? 'hidden md:flex' : 'flex'} md:h-full`}>
         {/* 카테고리 관리자 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-h-56 overflow-y-auto">
           <CategoryManager
             categories={categories}
             onAddCategory={onAddCategory}
@@ -106,7 +291,7 @@ const MemoList: React.FC<MemoListProps> = ({
 
         {/* 메모 목록 */}
         <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col md:min-h-0">
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+          <div className="p-4 flex-shrink-0">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-gray-800">메모 목록</h2>
@@ -140,17 +325,17 @@ const MemoList: React.FC<MemoListProps> = ({
                 ) : (
                   <button
                     onClick={addMemo}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                    className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-sm"
                     title="새 메모 추가"
                   >
-                    <PlusCircle className="w-5 h-5" />
+                    <FilePlus2 className="w-5 h-5" />
                   </button>
                 )}
               </div>
             </div>
           </div>
           {/* 메모 목록 컨테이너: 모바일에서는 스크롤 없음, 데스크톱에서는 스크롤 있음 */}
-          <div className="md:flex-1 md:overflow-y-auto">
+          <div className="md:flex-1 md:overflow-y-auto overflow-x-hidden">
             <ul className="divide-y divide-gray-200">
               {sortedAndFilteredMemos.map((memo) => (
                 <li
@@ -193,12 +378,13 @@ const MemoList: React.FC<MemoListProps> = ({
                         </p>
                         {memo.categoryId && (
                           <span
-                            className="px-2 py-1 text-xs rounded-full whitespace-nowrap"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                             style={{
                               backgroundColor: getCategory(memo.categoryId)?.color + '20',
                               color: getCategory(memo.categoryId)?.color
                             }}
                           >
+                            <Tag className="w-3 h-3" />
                             {getCategory(memo.categoryId)?.name}
                           </span>
                         )}
@@ -217,7 +403,7 @@ const MemoList: React.FC<MemoListProps> = ({
         ${activeMemo ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'hidden md:block'}`}>
         {activeMemo ? (
           <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setActiveMemo(null)}
@@ -235,75 +421,71 @@ const MemoList: React.FC<MemoListProps> = ({
                   placeholder="제목을 입력하세요"
                 />
                 <div className="relative">
-                  <button
-                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-2"
-                  >
-                    <Tag className="w-5 h-5" />
-                    {activeMemo.categoryId && (
-                      <span
-                        className="px-2 py-1 text-xs rounded-full"
-                        style={{
-                          backgroundColor: getCategory(activeMemo.categoryId)?.color + '20',
-                          color: getCategory(activeMemo.categoryId)?.color
-                        }}
-                      >
-                        {getCategory(activeMemo.categoryId)?.name}
-                      </span>
-                    )}
-                  </button>
-                  {showCategoryDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                      <div className="p-2">
-                        <div className="flex justify-between items-center mb-2 px-3 py-2">
-                          <span className="text-sm font-medium">카테고리</span>
-                          <button
-                            onClick={() => setShowCategoryDropdown(false)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                <button
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    activeMemo?.categoryId
+                      ? `hover:opacity-80`
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  style={activeMemo?.categoryId ? {
+                    backgroundColor: getCategory(activeMemo.categoryId)?.color + '20',
+                    color: getCategory(activeMemo.categoryId)?.color
+                  } : undefined}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  {activeMemo?.categoryId ? getCategory(activeMemo.categoryId)?.name : ''}
+                </button>
+                {showCategoryDropdown && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="p-2">
+                      <div className="flex justify-between items-center mb-2 px-3 py-2">
+                        <span className="text-sm font-medium">카테고리</span>
                         <button
+                          onClick={() => setShowCategoryDropdown(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, undefined);
+                          setShowCategoryDropdown(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
+                      >
+                        없음
+                      </button>
+                      {categories.map(category => (
+                        <button
+                          key={category._id}
                           onClick={() => {
-                            updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, undefined);
+                            updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, category._id);
                             setShowCategoryDropdown(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100"
+                          className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-2"
                         >
-                          카테고리 없음
+                          <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
                         </button>
-                        {categories.map(category => (
-                          <button
-                            key={category._id}
-                            onClick={() => {
-                              updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, category._id);
-                              setShowCategoryDropdown(false);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                            />
-                            {category.name}
-                          </button>
-                        ))}
-                      </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
                 </div>
               </div>
             </div>
-            <textarea
-              value={activeMemo.content}
-              onChange={(e) =>
-                updateMemo(activeMemo._id, activeMemo.title, e.target.value, activeMemo.categoryId)
+            <MemoEditor
+              content={convertPlainTextToHtml(activeMemo.content)}
+              onChange={(newContent) =>
+                updateMemo(activeMemo._id, activeMemo.title, newContent, activeMemo.categoryId)
               }
-              className="flex-1 p-4 w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0"
-              placeholder="내용을 입력하세요..."
             />
-            <div className="p-4 pb-24 md:pb-4 border-t border-gray-200">
+            <div className="p-4 pb-20 md:pb-4 flex justify-end">
               <button
                 onClick={() => {
                   deleteMemo(activeMemo._id);

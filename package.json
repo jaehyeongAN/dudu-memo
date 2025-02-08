@@ -12,6 +12,14 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@tiptap/extension-highlight": "^2.11.5",
+    "@tiptap/extension-link": "^2.11.5",
+    "@tiptap/extension-placeholder": "^2.11.5",
+    "@tiptap/extension-task-item": "^2.11.5",
+    "@tiptap/extension-task-list": "^2.11.5",
+    "@tiptap/pm": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "concurrently": "^8.2.2",
@@ -26,11 +34,14 @@
     "react-calendar": "^4.8.0",
     "react-datepicker": "^4.25.0",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.1",
+    "react-swipeable": "^7.0.1",
     "vite-plugin-pwa": "^0.19.7",
     "winston": "^3.12.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/react": "^18.3.5",
     "@types/react-calendar": "^4.1.0",
     "@types/react-datepicker": "^4.19.6",

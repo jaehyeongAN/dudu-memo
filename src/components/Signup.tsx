@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface SignupProps {
-  onSignup: (name: string, birthdate: string, email: string, password: string) => void;
+  onSignup: (name: string, email: string, password: string) => void;
   onSwitchToLogin: () => void;
 }
 
 const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
   const [name, setName] = useState('');
-  const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,16 +20,19 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    onSignup(name, birthdate, email, password);
+    onSignup(name, email, password);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">DuDu Memo</h2>
+          <div className="flex items-center justify-center gap-2">
+            <img src="/icons/icon-512x512-no-padding.png" alt="Doo!Du Logo" className="h-6 w-6" />
+            <h2 className="text-3xl font-extrabold text-indigo-600">Doo!Du</h2>
+          </div>
           <p className="mt-2 text-center text-sm text-gray-600">
-            회원가입하여 DuDu Memo를 시작하세요
+            회원가입하여 Doo!Du를 시작하세요 🎉
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -48,20 +50,6 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
                 placeholder="이름"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="birthdate" className="sr-only">
-                생년월일
-              </label>
-              <input
-                id="birthdate"
-                name="birthdate"
-                type="date"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                value={birthdate}
-                onChange={(e) => setBirthdate(e.target.value)}
               />
             </div>
             <div>

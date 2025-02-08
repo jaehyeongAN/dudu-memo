@@ -25,27 +25,50 @@ function isValidResponse(response) {
          (response.type === 'basic' || response.type === 'cors');
 }
 
-// 설치 시 정적 자산 캐싱
+// 설치 시 이전 캐시 즉시 삭제
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // 대기 없이 즉시 활성화
+  
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .catch((error) => console.error('Cache installation failed:', error))
+    caches.keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        return caches.open(CACHE_NAME);
+      })
+      .then(cache => {
+        return cache.addAll(STATIC_ASSETS);
+      })
   );
 });
 
-// 활성화 시 이전 캐시 정리
+// 활성화 시 클라이언트 강제 새로고침
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
+    Promise.all([
+      // 이전 캐시 정리
+      caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
+            .filter(cacheName => cacheName !== CACHE_NAME)
+            .map(cacheName => caches.delete(cacheName))
+        );
+      }),
+      // 모든 클라이언트 새로고침
+      self.clients.claim(),
+      self.clients.matchAll().then(clients => {
+        return Promise.all(
+          clients.map(client => client.navigate(client.url))
         );
       })
-      .catch((error) => console.error('Cache cleanup failed:', error))
+    ])
   );
 });
 

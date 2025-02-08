@@ -1224,7 +1224,6 @@ function App() {
           };
           setBacklogTodos(prev => [...prev, newBacklogTodo]);
           setTodos(prev => prev.filter(t => t._id !== id));
-          toast.success('할 일이 백로그로 이동되었습니다.');
         }
         return;
       }

@@ -1237,6 +1237,35 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then(registration => {
+          // 새로운 서비스 워커 감지 시
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                // 새 버전이 설치되면 자동으로 페이지 새로고침
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            }
+          });
+
+          // 주기적으로 업데이트 체크
+          setInterval(() => {
+            registration.update();
+          }, 1000 * 60 * 60); // 1시간마다
+        })
+        .catch(error => {
+          console.error('Service worker registration failed:', error);
+        });
+    }
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
+
   if (!isLoggedIn && !isGuestMode) {
     return showSignup ? (
       <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />
@@ -1302,36 +1331,6 @@ function App() {
     }
     return null;
   };
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/service-worker.js', {
-          updateViaCache: 'none' // 서비스 워커 파일의 캐시 방지
-        })
-        .then(registration => {
-          // 새로운 서비스 워커 감지 시 즉시 활성화
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // 새 버전 설치 완료 시 사용자에게 알림
-                  if (window.confirm('새로운 버전이 있습니다. 지금 업데이트하시겠습니까?')) {
-                    window.location.reload();
-                  }
-                }
-              });
-            }
-          });
-
-          // 주기적으로 업데이트 체크
-          setInterval(() => {
-            registration.update();
-          }, 1000 * 60 * 60); // 1시간마다
-        });
-    });
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -25,31 +25,22 @@ function isValidResponse(response) {
          (response.type === 'basic' || response.type === 'cors');
 }
 
-// 설치 시 이전 캐시 즉시 삭제
+// 설치 시 정적 자산 캐싱
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // 대기 없이 즉시 활성화
-  
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            if (cacheName !== CACHE_NAME) {
-              return caches.delete(cacheName);
-            }
-          })
-        );
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        // 새 캐시 생성
+        return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
-        return caches.open(CACHE_NAME);
-      })
-      .then(cache => {
-        return cache.addAll(STATIC_ASSETS);
+        // 대기 없이 활성화
+        return self.skipWaiting();
       })
   );
 });
 
-// 활성화 시 클라이언트 강제 새로고침
+// 활성화 시 이전 캐시 정리
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
@@ -61,13 +52,8 @@ self.addEventListener('activate', (event) => {
             .map(cacheName => caches.delete(cacheName))
         );
       }),
-      // 모든 클라이언트 새로고침
-      self.clients.claim(),
-      self.clients.matchAll().then(clients => {
-        return Promise.all(
-          clients.map(client => client.navigate(client.url))
-        );
-      })
+      // 새 서비스 워커가 즉시 페이지 제어하도록 설정
+      self.clients.claim()
     ])
   );
 });

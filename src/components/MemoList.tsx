@@ -3,6 +3,14 @@ import { FilePlus2, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
 import CategoryManager from './CategoryManager';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Highlight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Code, Link as LinkIcon, Highlighter } from 'lucide-react';
 
 interface MemoListProps {
   memos: Memo[];
@@ -18,6 +26,159 @@ interface MemoListProps {
   onDeleteCategory: (id: string) => void;
   onSelectCategory: (categoryId: string | null) => void;
 }
+
+const MemoEditor: React.FC<{
+  content: string;
+  onChange: (content: string) => void;
+}> = ({ content, onChange }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: '내용을 입력하세요...',
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Highlight,
+      Link.configure({
+        openOnClick: false,
+      }),
+    ],
+    content,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm prose-gray-900 max-w-none focus:outline-none prose-headings:mt-3 prose-headings:mb-2 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-blockquote:my-2 prose-pre:my-2',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    autofocus: true,
+  });
+
+  if (!editor) {
+    return null;
+  }
+
+  const MenuButton = ({ 
+    onClick, 
+    active, 
+    children,
+    title
+  }: { 
+    onClick: () => void; 
+    active?: boolean;
+    children: React.ReactNode;
+    title: string;
+  }) => (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+        editor.commands.focus();
+      }}
+      onMouseDown={(e) => e.preventDefault()}
+      className={`p-2.5 rounded-lg transition-colors touch-manipulation ${
+        active 
+          ? 'bg-indigo-50 text-indigo-600' 
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="border-b border-gray-200 overflow-x-auto editor-toolbar">
+        <div className="p-1.5 flex items-center gap-0.5 min-w-max">
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive('bold')}
+            title="굵게"
+          >
+            <Bold className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive('italic')}
+            title="기울임"
+          >
+            <Italic className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            active={editor.isActive('heading', { level: 1 })}
+            title="제목 1"
+          >
+            <Heading1 className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive('heading', { level: 2 })}
+            title="제목 2"
+          >
+            <Heading2 className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive('bulletList')}
+            title="글머리 기호"
+          >
+            <List className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive('orderedList')}
+            title="번호 매기기"
+          >
+            <ListOrdered className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive('blockquote')}
+            title="인용"
+          >
+            <Quote className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            active={editor.isActive('codeBlock')}
+            title="코드"
+          >
+            <Code className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => {
+              const url = window.prompt('URL을 입력하세요:');
+              if (url) {
+                editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+            active={editor.isActive('link')}
+            title="링크"
+          >
+            <LinkIcon className="w-5 h-5" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            active={editor.isActive('highlight')}
+            title="형광펜"
+          >
+            <Highlighter className="w-5 h-5" />
+          </MenuButton>
+        </div>
+      </div>
+      <EditorContent 
+        editor={editor} 
+        className="flex-1 overflow-y-auto px-4 py-2 [&_.ProseMirror]:min-h-full [&_.ProseMirror]:px-0"
+      />
+    </div>
+  );
+};
 
 const MemoList: React.FC<MemoListProps> = ({
   memos,
@@ -86,6 +247,23 @@ const MemoList: React.FC<MemoListProps> = ({
       setSelectedMemos(new Set());
       setIsSelectionMode(false);
     }
+  };
+
+  const convertPlainTextToHtml = (text: string) => {
+    if (!text) return '';
+    
+    // HTML 태그가 이미 포함되어 있는지 확인
+    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(text);
+    
+    if (hasHtmlTags) {
+      return text; // 이미 HTML이면 그대로 반환
+    }
+    
+    // 일반 텍스트를 HTML로 변환
+    return text
+      .split('\n')
+      .map(line => `<p>${line}</p>`)
+      .join('');
   };
 
   return (
@@ -218,7 +396,7 @@ const MemoList: React.FC<MemoListProps> = ({
         ${activeMemo ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'hidden md:block'}`}>
         {activeMemo ? (
           <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setActiveMemo(null)}
@@ -294,13 +472,11 @@ const MemoList: React.FC<MemoListProps> = ({
                 </div>
               </div>
             </div>
-            <textarea
-              value={activeMemo.content}
-              onChange={(e) =>
-                updateMemo(activeMemo._id, activeMemo.title, e.target.value, activeMemo.categoryId)
+            <MemoEditor
+              content={convertPlainTextToHtml(activeMemo.content)}
+              onChange={(newContent) =>
+                updateMemo(activeMemo._id, activeMemo.title, newContent, activeMemo.categoryId)
               }
-              className="flex-1 p-4 w-full resize-none bg-transparent border-0 focus:outline-none focus:ring-0"
-              placeholder="내용을 입력하세요..."
             />
             <div className="p-4 pb-20 md:pb-4 flex justify-end">
               <button

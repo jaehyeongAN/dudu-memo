@@ -58,6 +58,13 @@ const MemoEditor: React.FC<{
     autofocus: true,
   });
 
+  // 새로 추가: content prop이 변경될 때 에디터 내용 업데이트
+  React.useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
   if (!editor) {
     return null;
   }

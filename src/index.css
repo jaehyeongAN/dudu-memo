@@ -195,3 +195,105 @@ input:focus, textarea:focus {
 .calendar-wrapper {
   transition: transform 0.3s ease-in-out;
 }
+
+/* TipTap 스타일 */
+.ProseMirror {
+  @apply min-h-full outline-none text-gray-900;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold;
+}
+
+.ProseMirror p {
+  @apply leading-relaxed;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  @apply list-none p-0 my-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start my-0.5;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  @apply mr-2 mt-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  @apply flex-1;
+}
+
+.ProseMirror ul:not([data-type="taskList"]),
+.ProseMirror ol {
+  @apply pl-5 my-1;
+}
+
+.ProseMirror li {
+  @apply my-0.5;
+}
+
+.ProseMirror mark {
+  @apply bg-yellow-200 px-0.5 rounded;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-2;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-100 p-3 rounded-lg font-mono text-sm my-2 text-gray-900;
+}
+
+/* TipTap 모바일 최적화 스타일 */
+@media (max-width: 768px) {
+  .ProseMirror {
+    @apply text-base;
+  }
+
+  .ProseMirror h1 {
+    @apply text-xl;
+  }
+
+  .ProseMirror h2 {
+    @apply text-lg;
+  }
+
+  .ProseMirror blockquote {
+    @apply text-sm;
+  }
+
+  .ProseMirror pre {
+    @apply text-xs p-2 text-gray-900;
+  }
+}
+
+/* 터치 최적화 */
+@media (pointer: coarse) {
+  .ProseMirror {
+    @apply touch-manipulation;
+  }
+}
+
+/* 에디터 툴바 스크롤바 숨김 */
+.editor-toolbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.editor-toolbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

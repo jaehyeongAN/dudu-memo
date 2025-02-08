@@ -354,14 +354,14 @@ const TodoList: React.FC<TodoListProps> = ({
                         )}
                       </div>
                       
-                      {/* 내일로 미루기 버튼 추가 */}
+                      {/* 하루 미루기 버튼 추가 */}
                       <button
                         onClick={() => handlePostpone(todo)}
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                        title="내일로 미루기"
+                        title="하루 미루기"
                       >
                         <ArrowRight className="w-3 h-3" />
-                        내일로 미루기
+                        하루 미루기
                       </button>
 
                       {/* 백로그로 이동 버튼 */}
@@ -370,7 +370,7 @@ const TodoList: React.FC<TodoListProps> = ({
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                       >
                         <PackagePlus className="w-3 h-3" />
-                        백로그에 보관
+                        백로그 보관
                       </button>
                     </div>
                   )}

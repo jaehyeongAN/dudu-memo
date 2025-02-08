@@ -380,13 +380,13 @@ const BacklogList: React.FC<BacklogListProps> = ({
                         )}
                       </div>
 
-                      {/* 캘린더에 등록 버튼 */}
+                      {/* 캘린더 등록 버튼 */}
                       <button
                         onClick={() => handleMoveToTodo(todo._id)}
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                       >
                         <CalendarPlus className="w-3 h-3" />
-                        캘린더에 등록
+                        캘린더 등록
                       </button>
                     </div>
                   )}

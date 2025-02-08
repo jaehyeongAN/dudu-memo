@@ -12,7 +12,7 @@ body {
   @apply w-full max-w-full bg-white border-none font-sans;
   line-height: 1.125em;
   width: 100%;
-  border: none;
+  border: none !important;
   font-family: inherit;
 }
 
@@ -22,7 +22,7 @@ body {
 
 .react-calendar__navigation button:enabled:hover,
 .react-calendar__navigation button:enabled:focus {
-  @apply bg-indigo-50;
+  background-color: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__navigation button[disabled] {
@@ -44,30 +44,30 @@ body {
 
 .react-calendar__tile:enabled:hover,
 .react-calendar__tile:enabled:focus {
-  @apply bg-indigo-50 text-indigo-600 rounded-lg;
-  background-color: #F3F4F6;
+  background: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__tile--now {
   @apply bg-yellow-50 rounded-lg font-bold text-indigo-600;
-  background: #EEF2FF !important;
-  color: #4F46E5;
+  background: #F3F4F6 !important; /* gray-100 */
 }
 
 .react-calendar__tile--now:enabled:hover,
 .react-calendar__tile--now:enabled:focus {
   @apply bg-yellow-100 rounded-lg font-bold text-indigo-700;
+  background: #E5E7EB !important; /* gray-200 */
 }
 
 .react-calendar__tile--active {
   @apply bg-indigo-500 rounded-lg font-bold text-white;
-  background: #4F46E5 !important;
-  color: white;
+  background: #EEF2FF !important; /* indigo-50 */
+  color: #4F46E5 !important; /* indigo-600 */
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
   @apply bg-indigo-600 text-white;
+  background: #E0E7FF !important; /* indigo-100 */
 }
 
 /* Calendar Tile Content Styles */

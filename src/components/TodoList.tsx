@@ -144,91 +144,100 @@ const TodoList: React.FC<TodoListProps> = ({
     // 기존의 모든 토스트를 제거
     toast.dismiss();
     
-    toast((t) => (
-      <div className="flex flex-col gap-3 p-2">
-        <div className="font-medium text-gray-800">할 일을 내일로 미루시겠습니까?</div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-            onClick={() => {
-              const tomorrow = addDays(selectedDate, 1);
-              updateTodoDate(todo._id, tomorrow);
-              toast.dismiss(t.id);
-              toast.success(
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">할 일을 내일로 미뤘습니다</span>
-                </div>
-              );
-            }}
-          >
-            확인
-          </button>
+    // 선택형 토스트
+    const showConfirmToast = () => {
+      return toast((t) => (
+        <div className="flex flex-col gap-3 p-2">
+          <div className="font-medium text-gray-800">할 일을 내일로 미루시겠습니까?</div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              취소
+            </button>
+            <button
+              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+              onClick={() => {
+                const tomorrow = addDays(selectedDate, 1);
+                updateTodoDate(todo._id, tomorrow);
+                toast.dismiss(t.id);
+                // 알림형 토스트를 별도 함수로 호출
+                showSuccessToast('할 일을 내일로 미뤘습니다');
+              }}
+            >
+              확인
+            </button>
+          </div>
         </div>
+      ), {
+        duration: Infinity,
+        style: {
+          background: '#fff',
+          color: '#1f2937',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+        },
+      });
+    };
+
+    showConfirmToast();
+  };
+
+  // 알림형 토스트를 위한 별도 함수
+  const showSuccessToast = (message: string) => {
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-white">{message}</span>
       </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+    , { duration: 2000 });
   };
 
   const handleToggleTodo = (todo: Todo) => {
     toggleTodo(todo._id);
-    toast.success(
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-white">
-          {todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉'}
-        </span>
-      </div>
-    );
+    showSuccessToast(todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉');
   };
 
   const handleMoveToBacklog = (todoId: string) => {
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          해당 할 일을 백로그로 이동하시겠습니까?
+    const showConfirmToast = () => {
+      toast((t) => (
+        <div className="flex flex-col gap-3">
+          <div className="font-medium">
+            해당 할 일을 백로그로 이동하시겠습니까?
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              취소
+            </button>
+            <button
+              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+              onClick={() => {
+                onMoveToBacklog(todoId);
+                toast.dismiss(t.id);
+                showSuccessToast('할 일을 백로그에 보관하였습니다.');
+              }}
+            >
+              확인
+            </button>
+          </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-            onClick={() => {
-              onMoveToBacklog(todoId);
-              toast.dismiss(t.id);
-              toast.success('할 일을 백로그에 보관하였습니다.');
-            }}
-          >
-            확인
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+      ), {
+        duration: Infinity,
+        style: {
+          background: '#fff',
+          color: '#1f2937',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+        },
+      });
+    };
+
+    showConfirmToast();
   };
 
   return (

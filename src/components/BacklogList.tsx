@@ -136,13 +136,16 @@ const BacklogList: React.FC<BacklogListProps> = ({
 
   const handleToggleTodo = (todo: BacklogTodo) => {
     toggleTodo(todo._id);
+    showSuccessToast(todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉');
+  };
+
+  // 알림형 토스트를 위한 별도 함수
+  const showSuccessToast = (message: string) => {
     toast.success(
       <div className="flex items-center gap-2">
-        <span className="font-medium">
-          {todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉'}
-        </span>
+        <span className="font-medium">{message}</span>
       </div>
-    );
+    , { duration: 2000 });
   };
 
   const handleMoveToTodo = (todoId: string) => {
@@ -154,48 +157,52 @@ const BacklogList: React.FC<BacklogListProps> = ({
     setSelectedDate(date);
     const todo = todos.find(t => t._id === selectedTodoId);
     
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          해당 백로그를 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
+    const showConfirmToast = () => {
+      toast((t) => (
+        <div className="flex flex-col gap-3">
+          <div className="font-medium">
+            해당 백로그를 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => {
+                setIsCalendarOpen(false);
+                setSelectedTodoId(null);
+                setSelectedDate(null);
+                toast.dismiss(t.id);
+              }}
+            >
+              취소
+            </button>
+            <button
+              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+              onClick={() => {
+                onMoveToTodo(selectedTodoId!, date);
+                setIsCalendarOpen(false);
+                setSelectedTodoId(null);
+                setSelectedDate(null);
+                toast.dismiss(t.id);
+                showSuccessToast('할 일이 캘린더에 등록되었습니다.');
+              }}
+            >
+              확인
+            </button>
+          </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => {
-              setIsCalendarOpen(false);
-              setSelectedTodoId(null);
-              setSelectedDate(null);
-              toast.dismiss(t.id);
-            }}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-            onClick={() => {
-              onMoveToTodo(selectedTodoId!, date);
-              setIsCalendarOpen(false);
-              setSelectedTodoId(null);
-              setSelectedDate(null);
-              toast.dismiss(t.id);
-              toast.success('할 일이 캘린더에 등록되었습니다.');
-            }}
-          >
-            확인
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+      ), {
+        duration: Infinity,
+        style: {
+          background: '#fff',
+          color: '#1f2937',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+        },
+      });
+    };
+
+    showConfirmToast();
   };
 
   return (

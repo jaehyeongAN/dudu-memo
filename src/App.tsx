@@ -1307,6 +1307,12 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Toaster 
         position="bottom-center"
+        containerStyle={{
+          bottom: 60, // 모바일에서 네비게이션 바 높이만큼 띄움
+          '@media (min-width: 768px)': {
+            bottom: 20, // 데스크톱에서는 기본 여백 적용
+          }
+        }}
         toastOptions={{
           className: 'text-sm',
           duration: 2000,

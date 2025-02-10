@@ -121,7 +121,7 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="rounded-lg border border-gray-200 divide-y divide-gray-200">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <span className="text-sm text-gray-600">버전</span>
-                  <span className="text-sm font-medium text-gray-900">1.0.0</span>
+                  <span className="text-sm font-medium text-gray-900">1.2.1</span>
                 </div>
                 <a 
                   href="https://www.doodu.kr" 

@@ -1,12 +1,17 @@
 import React from 'react';
-import { ListTodo, StickyNote, Archive } from 'lucide-react';
+import { ListTodo, StickyNote, Archive, Settings2 } from 'lucide-react';
 
 interface BottomNavigationProps {
-  activeTab: 'todo' | 'memo' | 'backlog';
-  setActiveTab: (tab: 'todo' | 'memo' | 'backlog') => void;
+  activeTab: 'todo' | 'memo' | 'backlog' | 'settings';
+  setActiveTab: (tab: 'todo' | 'memo' | 'backlog' | 'settings') => void;
+  onOpenSettings: () => void;
 }
 
-const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, setActiveTab }) => {
+const BottomNavigation: React.FC<BottomNavigationProps> = ({ 
+  activeTab, 
+  setActiveTab,
+  onOpenSettings
+}) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50">
       <div className="flex items-center justify-around h-16">
@@ -36,6 +41,15 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, setActiv
         >
           <StickyNote className="w-6 h-6" />
           <span className="text-xs mt-1">메모</span>
+        </button>
+        <button
+          onClick={onOpenSettings}
+          className={`flex flex-col items-center justify-center w-full h-full ${
+            activeTab === 'settings' ? 'text-indigo-600' : 'text-gray-500'
+          }`}
+        >
+          <Settings2 className="w-6 h-6" />
+          <span className="text-xs mt-1">설정</span>
         </button>
       </div>
     </div>

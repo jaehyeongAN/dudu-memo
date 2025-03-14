@@ -21,7 +21,7 @@ import { Toaster } from 'react-hot-toast';
 import { toast } from 'react-hot-toast';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog'>('todo');
+  const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog' | 'settings'>('todo');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [backlogTodos, setBacklogTodos] = useState<BacklogTodo[]>([]);
   const [newTodo, setNewTodo] = useState('');
@@ -40,10 +40,31 @@ function App() {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle window resize to detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handle settings navigation based on device
+  const handleOpenSettings = () => {
+    if (isMobile) {
+      setActiveTab('settings');
+    } else {
+      setIsSettingsOpen(true);
+    }
+  };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setIsGuestMode(false);
+    setActiveTab('todo');
     setIsSettingsOpen(false);
     localStorage.removeItem('token');
     localStorage.removeItem('currentWorkspaceId');
@@ -58,6 +79,7 @@ function App() {
   const handleDeleteAccount = async () => {
     try {
       await api.delete('/users/me');
+      setActiveTab('todo');
       setIsSettingsOpen(false);
       handleLogout();
     } catch (error) {
@@ -1172,7 +1194,7 @@ function App() {
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => handleMonthChange('next'),
     onSwipedRight: () => handleMonthChange('prev'),
-    preventDefaultTouchmoveEvent: true,
+    preventScrollOnSwipe: true,
     trackMouse: false
   });
 
@@ -1308,10 +1330,7 @@ function App() {
       <Toaster 
         position="bottom-center"
         containerStyle={{
-          bottom: 60, // 모바일에서 네비게이션 바 높이만큼 띄움
-          '@media (min-width: 768px)': {
-            bottom: 20, // 데스크톱에서는 기본 여백 적용
-          }
+          bottom: isMobile ? 60 : 20, // 모바일에서 네비게이션 바 높이만큼 띄움
         }}
         toastOptions={{
           className: 'text-sm',
@@ -1329,7 +1348,7 @@ function App() {
         onDeleteAccount={handleDeleteAccount}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={handleOpenSettings}
         isGuestMode={isGuestMode}
         workspaceSelector={
           <WorkspaceSelector
@@ -1339,7 +1358,6 @@ function App() {
             onCreateWorkspace={handleCreateWorkspace}
             onUpdateWorkspace={handleUpdateWorkspace}
             onDeleteWorkspace={handleDeleteWorkspace}
-            isGuestMode={isGuestMode}
           />
         }
       />
@@ -1449,7 +1467,7 @@ function App() {
               onMoveToTodo={moveBacklogToTodo}
             />
           </div>
-        ) : (
+        ) : activeTab === 'memo' ? (
           <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
             <MemoList
               memos={memos}
@@ -1466,19 +1484,49 @@ function App() {
               onSelectCategory={setSelectedCategoryId}
             />
           </div>
+        ) : activeTab === 'settings' && isMobile ? (
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+            <Settings
+              isOpen={true}
+              onClose={() => setActiveTab('todo')}
+              onLogout={handleLogout}
+              onDeleteAccount={handleDeleteAccount}
+              isGuestMode={isGuestMode}
+              isModal={false}
+            />
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+            {/* Fallback for desktop when settings tab is selected */}
+            {activeTab === 'settings' && !isMobile && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <p className="text-center text-gray-500">
+                  설정은 화면 상단의 설정 아이콘을 클릭하여 열 수 있습니다.
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </main>
 
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab } />
+      <BottomNavigation 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab}
+        onOpenSettings={handleOpenSettings}
+      />
       <InstallPWA />
 
-      <Settings
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onLogout={handleLogout}
-        onDeleteAccount={handleDeleteAccount}
-        isGuestMode={isGuestMode}
-      />
+      {/* Desktop modal settings */}
+      {!isMobile && (
+        <Settings
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
+          isGuestMode={isGuestMode}
+          isModal={true}
+        />
+      )}
     </div>
   );
 }

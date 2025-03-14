@@ -74,7 +74,7 @@ const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm md:text-base"
       >
-        <span className="font-medium truncate max-w-[110px] md:max-w-[200px]">
+        <span className="font-medium truncate max-w-[150px] md:max-w-[200px]">
           {currentWorkspace?.name || '워크스페이스'}
         </span>
         <ChevronDown className="w-4 h-4 flex-shrink-0" />

@@ -256,13 +256,35 @@ const MemoList: React.FC<MemoListProps> = ({
     }
   };
 
-  // HTML 태그를 제거하고 일반 텍스트로 변환하는 함수 추가
+  const convertPlainTextToHtml = (text: string) => {
+    if (!text) return '';
+    
+    // HTML 태그가 이미 포함되어 있는지 확인
+    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(text);
+    
+    if (hasHtmlTags) {
+      return text; // 이미 HTML이면 그대로 반환
+    }
+    
+    // 일반 텍스트를 HTML로 변환
+    return text
+      .split('\n')
+      .map(line => `<p>${line}</p>`)
+      .join('');
+  };
+
+  // HTML 태그를 제거하고 일반 텍스트로 변환하는 함수
   const stripHtmlTags = (html: string) => {
     if (!html) return '';
+    
     // 임시 DOM 요소를 생성하여 HTML을 파싱
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const tempElement = document.createElement('div');
+    tempElement.innerHTML = html;
+    
     // 텍스트 내용만 추출
-    return doc.body.textContent || '';
+    const plainText = tempElement.textContent || tempElement.innerText || '';
+    
+    return plainText;
   };
 
   return (
@@ -472,7 +494,7 @@ const MemoList: React.FC<MemoListProps> = ({
               </div>
             </div>
             <MemoEditor
-              content={stripHtmlTags(activeMemo.content)}
+              content={convertPlainTextToHtml(activeMemo.content)}
               onChange={(newContent) =>
                 updateMemo(activeMemo._id, activeMemo.title, newContent, activeMemo.categoryId)
               }

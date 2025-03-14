@@ -1,4 +1,4 @@
-const CACHE_NAME = 'doo!du-v250209';
+const CACHE_NAME = 'doo!du-v250315';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

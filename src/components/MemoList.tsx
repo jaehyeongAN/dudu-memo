@@ -273,6 +273,20 @@ const MemoList: React.FC<MemoListProps> = ({
       .join('');
   };
 
+  // HTML 태그를 제거하고 일반 텍스트로 변환하는 함수
+  const stripHtmlTags = (html: string) => {
+    if (!html) return '';
+    
+    // 임시 DOM 요소를 생성하여 HTML을 파싱
+    const tempElement = document.createElement('div');
+    tempElement.innerHTML = html;
+    
+    // 텍스트 내용만 추출
+    const plainText = tempElement.textContent || tempElement.innerText || '';
+    
+    return plainText;
+  };
+
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-8rem)] gap-4">
       {/* 왼쪽 패널: 카테고리 관리자와 메모 목록 */}
@@ -370,7 +384,7 @@ const MemoList: React.FC<MemoListProps> = ({
                         {memo.title || '제목 없음'}
                       </h3>
                       <p className="text-sm text-gray-500 truncate mt-1">
-                        {memo.content || '내용 없음'}
+                        {stripHtmlTags(memo.content) || '내용 없음'}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <p className="text-xs text-gray-400">

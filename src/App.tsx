@@ -41,6 +41,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const calendarRef = React.useRef<HTMLDivElement>(null);
 
   // Handle window resize to detect mobile/desktop
   useEffect(() => {
@@ -1375,18 +1376,25 @@ function App() {
                   >
                     <span className="font-medium">{isCalendarCollapsed ? '캘린더 열기' : '캘린더 접기'}</span>
                     {isCalendarCollapsed ? (
-                      <ChevronDown className="w-5 h-5" />
+                      <ChevronDown className="w-5 h-5 transition-transform duration-300" />
                     ) : (
-                      <ChevronUp className="w-5 h-5" />
+                      <ChevronUp className="w-5 h-5 transition-transform duration-300" />
                     )}
                   </button>
                 </div>
                 
                 {/* 캘린더 컨테이너 */}
-                <div className={`transition-all duration-300 ${
-                  isCalendarCollapsed ? 'h-0 md:h-auto overflow-hidden' : 'h-auto'
-                }`}>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div 
+                  ref={calendarRef}
+                  className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                    isCalendarCollapsed 
+                      ? 'max-h-0 md:max-h-[1000px] opacity-0 md:opacity-100 scale-y-95 origin-top' 
+                      : 'max-h-[1000px] opacity-100 scale-y-100 origin-top'
+                  }`}
+                >
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-500 ${
+                    isCalendarCollapsed ? 'transform -translate-y-4 md:transform-none' : 'transform translate-y-0'
+                  }`}>
                     <div className="p-6">
                       <div
                         {...swipeHandlers}

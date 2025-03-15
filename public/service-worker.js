@@ -1,4 +1,4 @@
-const CACHE_VERSION = '1.3.0';
+const CACHE_VERSION = '1.3.0.1';
 const CACHE_NAME = `doodu-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
@@ -30,15 +30,9 @@ function isValidResponse(response) {
 self.addEventListener('install', (event) => {
   console.log(`Service Worker installing with cache version: ${CACHE_NAME} (${CACHE_VERSION})`);
   
-  // 기존 캐시 모두 삭제 후 새로 설치
+  // 새 캐시 생성 및 정적 자산 캐싱
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-      })
-      .then(() => caches.open(CACHE_NAME))
+    caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Caching static assets...');
         return cache.addAll(STATIC_ASSETS);
@@ -59,7 +53,7 @@ self.addEventListener('activate', (event) => {
   
   event.waitUntil(
     Promise.all([
-      // 모든 캐시 스토리지 확인 및 정리
+      // 이전 캐시 정리 (현재 캐시는 유지)
       caches.keys()
         .then(cacheNames => {
           return Promise.all(
@@ -104,12 +98,14 @@ self.addEventListener('fetch', (event) => {
   // 캐시 키 생성 (쿼리 파라미터 제거)
   const cacheKey = (url => {
     const urlObj = new URL(url);
-    // 모든 쿼리 파라미터 제거 (캐시 키 단순화)
-    urlObj.search = '';
+    // 버전 파라미터만 제거 (다른 쿼리 파라미터는 유지)
+    if (urlObj.searchParams.has('v')) {
+      urlObj.searchParams.delete('v');
+    }
     return urlObj.href;
   })(event.request.url);
 
-  // HTML 파일은 항상 네트워크에서 가져오기 (캐시 무시)
+  // HTML 파일은 네트워크 우선, 캐시 폴백 전략 사용
   if (event.request.url.endsWith('.html') || event.request.url.endsWith('/')) {
     event.respondWith(
       fetch(event.request)
@@ -126,7 +122,19 @@ self.addEventListener('fetch', (event) => {
         .catch(error => {
           console.error('HTML fetch failed, falling back to cache:', error);
           return caches.match(cacheKey)
-            .then(cachedResponse => cachedResponse || new Response('Offline', { status: 503 }));
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // 캐시에 없으면 오프라인 페이지 반환
+              return new Response(
+                '<html><body><h1>오프라인 상태입니다</h1><p>인터넷 연결을 확인해주세요.</p></body></html>',
+                { 
+                  status: 503, 
+                  headers: { 'Content-Type': 'text/html;charset=utf-8' } 
+                }
+              );
+            });
         })
     );
     return;
@@ -148,29 +156,54 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 자산은 캐시 우선, 네트워크 폴백
+  // 정적 자산은 캐시 우선, 네트워크 폴백 전략 사용
   event.respondWith(
     caches.match(cacheKey)
       .then(cachedResponse => {
-        // 캐시된 응답이 있으면 반환하고 백그라운드에서 업데이트
-        const fetchPromise = fetch(event.request)
+        if (cachedResponse) {
+          // 캐시된 응답이 있으면 반환하고 백그라운드에서 업데이트 시도
+          fetch(event.request)
+            .then(networkResponse => {
+              if (isValidResponse(networkResponse)) {
+                caches.open(CACHE_NAME)
+                  .then(cache => cache.put(cacheKey, networkResponse.clone()))
+                  .catch(error => console.error('Cache update failed:', error));
+              }
+            })
+            .catch(error => console.error('Background fetch failed:', error));
+          
+          return cachedResponse;
+        }
+
+        // 캐시된 응답이 없으면 네트워크에서 가져오기
+        return fetch(event.request)
           .then(networkResponse => {
-            if (isValidResponse(networkResponse)) {
-              const clonedResponse = networkResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(cacheKey, clonedResponse))
-                .catch(error => console.error('Cache update failed:', error));
+            if (!isValidResponse(networkResponse)) {
+              return networkResponse;
             }
+
+            // 응답을 캐시에 저장하고 반환
+            const clonedResponse = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(cacheKey, clonedResponse))
+              .catch(error => console.error('Cache put failed:', error));
+            
             return networkResponse;
           })
           .catch(error => {
-            console.error('Network fetch failed:', error);
-            return cachedResponse || new Response('Offline', { status: 503 });
+            console.error('Network request failed:', error);
+            return new Response('Offline', { status: 503 });
           });
-
-        return cachedResponse || fetchPromise;
       })
   );
+});
+
+// 메시지 이벤트 처리 (SKIP_WAITING 메시지 수신 시 즉시 활성화)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Skip waiting message received, activating immediately...');
+    self.skipWaiting();
+  }
 });
 
 // 푸시 알림 처리

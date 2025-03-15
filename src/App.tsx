@@ -1272,22 +1272,33 @@ function App() {
 
   // 서비스 워커 업데이트 감지
   useEffect(() => {
+    // 이미 처리된 업데이트 버전을 추적하기 위한 변수
+    const processedVersions = new Set();
+    
     // 서비스 워커 메시지 리스너 등록
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'NEW_VERSION') {
-        console.log('New app version available:', event.data.version);
+        const version = event.data.version || '';
+        
+        // 이미 처리된 버전이면 무시
+        if (processedVersions.has(version)) {
+          return;
+        }
+        
+        console.log('New app version available:', version);
+        processedVersions.add(version);
         setShowUpdateNotification(true);
         
         // 업데이트 상세 정보 저장
         setUpdateDetails({
-          version: event.data.version || '',
+          version: version,
           message: event.data.details?.message || '새 버전이 준비되었습니다!',
           timestamp: event.data.timestamp || new Date().toISOString()
         });
         
         // 로컬 스토리지에 업데이트 정보 저장 (앱 재시작 시에도 알림 표시)
         localStorage.setItem('pendingUpdate', JSON.stringify({
-          version: event.data.version,
+          version: version,
           timestamp: event.data.timestamp || new Date().toISOString(),
           importance: event.data.details?.importance || 'normal'
         }));
@@ -1304,6 +1315,12 @@ function App() {
           const pendingUpdate = localStorage.getItem('pendingUpdate');
           if (pendingUpdate) {
             const updateInfo = JSON.parse(pendingUpdate);
+            
+            // 이미 처리된 버전이면 무시
+            if (processedVersions.has(updateInfo.version)) {
+              return;
+            }
+            
             // 모바일에서는 업데이트가 적용될 때까지 계속 알림 표시
             // 데스크톱에서는 24시간 이내의 업데이트만 표시
             const updateTime = new Date(updateInfo.timestamp).getTime();
@@ -1311,6 +1328,7 @@ function App() {
             const hoursSinceUpdate = (currentTime - updateTime) / (1000 * 60 * 60);
             
             if (isMobile || hoursSinceUpdate < 24) {
+              processedVersions.add(updateInfo.version);
               setShowUpdateNotification(true);
               setUpdateDetails({
                 version: updateInfo.version || '',
@@ -1338,6 +1356,12 @@ function App() {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   console.log('New service worker installed, update available');
+                  
+                  // 이미 알림이 표시되어 있으면 중복 표시하지 않음
+                  if (showUpdateNotification) {
+                    return;
+                  }
+                  
                   setShowUpdateNotification(true);
                   setUpdateDetails({
                     version: '',
@@ -1371,14 +1395,31 @@ function App() {
       navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       clearInterval(updateInterval);
     };
-  }, [isMobile]);
+  }, [isMobile, showUpdateNotification]);
 
   // 앱 업데이트 적용
   const applyUpdate = () => {
+    // 업데이트 알림 숨기기
+    setShowUpdateNotification(false);
+    
     // 업데이트 적용 후 로컬 스토리지에서 대기 중인 업데이트 정보 삭제
     localStorage.removeItem('pendingUpdate');
-    // 페이지 새로고침하여 새 버전 적용
-    window.location.reload();
+    
+    // 서비스 워커 업데이트 확인
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration && registration.waiting) {
+          // 대기 중인 서비스 워커가 있으면 활성화 메시지 전송
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    }
+    
+    // 잠시 후 페이지 새로고침 (서비스 워커가 활성화될 시간 확보)
+    setTimeout(() => {
+      console.log('Reloading page to apply update...');
+      window.location.reload();
+    }, 500);
   };
 
   if (!isLoggedIn && !isGuestMode) {

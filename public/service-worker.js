@@ -1,10 +1,10 @@
-const CACHE_NAME = 'doo!du-v250315';
+const CACHE_NAME = 'v250315';
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/index.html?v=250315',
+  '/manifest.json?v=250315',
+  '/icons/icon-192x192.png?v=250315',
+  '/icons/icon-512x512.png?v=250315'
 ];
 
 // 캐시 가능한 요청인지 확인하는 함수
@@ -27,25 +27,39 @@ function isValidResponse(response) {
 
 // 설치 시 정적 자산 캐싱
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing with cache version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => {
+        // 새 서비스 워커가 대기 상태를 건너뛰고 즉시 활성화되도록 함
+        return self.skipWaiting();
+      })
       .catch((error) => console.error('Cache installation failed:', error))
   );
 });
 
 // 활성화 시 이전 캐시 정리
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating with cache version:', CACHE_NAME);
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
-        );
-      })
-      .catch((error) => console.error('Cache cleanup failed:', error))
+    Promise.all([
+      // 이전 캐시 정리
+      caches.keys()
+        .then((cacheNames) => {
+          return Promise.all(
+            cacheNames
+              .filter((name) => name !== CACHE_NAME)
+              .map((name) => {
+                console.log('Deleting old cache:', name);
+                return caches.delete(name);
+              })
+          );
+        }),
+      // 활성화 즉시 모든 클라이언트 제어 (페이지 새로고침 없이 새 서비스 워커 사용)
+      self.clients.claim()
+    ])
+    .catch((error) => console.error('Cache cleanup failed:', error))
   );
 });
 
@@ -55,6 +69,16 @@ self.addEventListener('fetch', (event) => {
   if (!isValidRequestUrl(event.request.url) || event.request.method !== 'GET') {
     return;
   }
+
+  // 캐시 키 생성 (쿼리 파라미터 제거)
+  const cacheKey = (url => {
+    const urlObj = new URL(url);
+    // 버전 파라미터(v=)가 있는 경우 캐시 키에서 제거
+    if (urlObj.searchParams.has('v')) {
+      urlObj.searchParams.delete('v');
+    }
+    return urlObj.href;
+  })(event.request.url);
 
   // API 요청은 네트워크 우선
   if (event.request.url.includes('/api/')) {
@@ -91,7 +115,10 @@ self.addEventListener('fetch', (event) => {
             return caches.open(CACHE_NAME)
               .then((cache) => {
                 if (isValidRequestUrl(event.request.url)) {
-                  cache.put(event.request, networkResponse.clone())
+                  // 원본 요청 URL이 아닌 쿼리 파라미터가 제거된 URL로 캐시
+                  const clonedResponse = networkResponse.clone();
+                  const requestToCache = new Request(cacheKey);
+                  cache.put(requestToCache, clonedResponse)
                     .catch((error) => console.error('Cache put failed:', error));
                 }
                 return networkResponse;

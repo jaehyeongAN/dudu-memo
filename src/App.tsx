@@ -42,6 +42,16 @@ function App() {
   const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const calendarRef = React.useRef<HTMLDivElement>(null);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [updateDetails, setUpdateDetails] = useState<{
+    version: string;
+    message: string;
+    timestamp: string;
+  }>({
+    version: '',
+    message: '새 버전이 준비되었습니다!',
+    timestamp: ''
+  });
 
   // Handle window resize to detect mobile/desktop
   useEffect(() => {
@@ -1260,6 +1270,117 @@ function App() {
     }
   };
 
+  // 서비스 워커 업데이트 감지
+  useEffect(() => {
+    // 서비스 워커 메시지 리스너 등록
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'NEW_VERSION') {
+        console.log('New app version available:', event.data.version);
+        setShowUpdateNotification(true);
+        
+        // 업데이트 상세 정보 저장
+        setUpdateDetails({
+          version: event.data.version || '',
+          message: event.data.details?.message || '새 버전이 준비되었습니다!',
+          timestamp: event.data.timestamp || new Date().toISOString()
+        });
+        
+        // 로컬 스토리지에 업데이트 정보 저장 (앱 재시작 시에도 알림 표시)
+        localStorage.setItem('pendingUpdate', JSON.stringify({
+          version: event.data.version,
+          timestamp: event.data.timestamp || new Date().toISOString(),
+          importance: event.data.details?.importance || 'normal'
+        }));
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+
+    // 서비스 워커 업데이트 확인
+    const checkForUpdates = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          // 로컬 스토리지에서 대기 중인 업데이트 확인
+          const pendingUpdate = localStorage.getItem('pendingUpdate');
+          if (pendingUpdate) {
+            const updateInfo = JSON.parse(pendingUpdate);
+            // 모바일에서는 업데이트가 적용될 때까지 계속 알림 표시
+            // 데스크톱에서는 24시간 이내의 업데이트만 표시
+            const updateTime = new Date(updateInfo.timestamp).getTime();
+            const currentTime = new Date().getTime();
+            const hoursSinceUpdate = (currentTime - updateTime) / (1000 * 60 * 60);
+            
+            if (isMobile || hoursSinceUpdate < 24) {
+              setShowUpdateNotification(true);
+              setUpdateDetails({
+                version: updateInfo.version || '',
+                message: updateInfo.importance === 'critical' 
+                  ? '중요 업데이트가 있습니다! 최신 기능과 개선사항을 적용하려면 업데이트하세요.'
+                  : '새 버전이 준비되었습니다!',
+                timestamp: updateInfo.timestamp
+              });
+            } else if (!isMobile) {
+              // 오래된 업데이트 정보 삭제 (데스크톱에서만)
+              localStorage.removeItem('pendingUpdate');
+            }
+          }
+          
+          // 서비스 워커 등록 상태 확인
+          const registration = await navigator.serviceWorker.ready;
+          
+          // 업데이트 확인
+          registration.update();
+          
+          // 업데이트 감지 리스너
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New service worker installed, update available');
+                  setShowUpdateNotification(true);
+                  setUpdateDetails({
+                    version: '',
+                    message: '중요 업데이트가 있습니다! 최신 기능과 개선사항을 적용하려면 업데이트하세요.',
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  // 로컬 스토리지에 업데이트 정보 저장
+                  localStorage.setItem('pendingUpdate', JSON.stringify({
+                    version: '',
+                    timestamp: new Date().toISOString(),
+                    importance: 'critical'
+                  }));
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.error('Service worker update check failed:', error);
+        }
+      }
+    };
+
+    // 초기 업데이트 확인
+    checkForUpdates();
+    
+    // 주기적으로 업데이트 확인 (모바일에서는 더 자주 확인)
+    const updateInterval = setInterval(checkForUpdates, isMobile ? 5 * 60 * 1000 : 15 * 60 * 1000);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      clearInterval(updateInterval);
+    };
+  }, [isMobile]);
+
+  // 앱 업데이트 적용
+  const applyUpdate = () => {
+    // 업데이트 적용 후 로컬 스토리지에서 대기 중인 업데이트 정보 삭제
+    localStorage.removeItem('pendingUpdate');
+    // 페이지 새로고침하여 새 버전 적용
+    window.location.reload();
+  };
+
   if (!isLoggedIn && !isGuestMode) {
     return showSignup ? (
       <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />
@@ -1342,6 +1463,78 @@ function App() {
           },
         }}
       />
+      
+      {/* 앱 업데이트 알림 - 모바일 최적화 및 UI 개선 */}
+      {showUpdateNotification && (
+        <div className="fixed inset-x-0 bottom-0 md:top-0 md:bottom-auto z-50 shadow-lg bg-gradient-to-r from-indigo-600 to-blue-500">
+          <div className="max-w-7xl mx-auto">
+            {/* 모바일 디자인 - 네비게이션 바 위에 표시되도록 수정 */}
+            <div className="md:hidden">
+              <div className="flex flex-col items-center text-white px-4 py-3 pb-[calc(0.75rem+60px)]">
+                <div className="flex items-center justify-center w-full mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold mb-1">새 버전이 준비되었습니다!</h3>
+                <p className="text-sm text-center mb-3 text-white/90">
+                  {updateDetails.message}
+                  {updateDetails.version && <span className="block mt-1 text-xs opacity-75">버전: {updateDetails.version}</span>}
+                </p>
+                {/* '나중에' 버튼 제거하고 업데이트 버튼만 표시 */}
+                <button 
+                  onClick={applyUpdate}
+                  className="w-full bg-white text-indigo-600 py-3 rounded-lg text-base font-medium hover:bg-indigo-50 transition-colors shadow-md flex items-center justify-center"
+                >
+                  {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg> */}
+                  지금 업데이트하기
+                </button>
+                {/* 하단 네비게이션 바 영역 확보를 위한 공간 */}
+                <div className="h-[60px] w-full md:hidden"></div>
+              </div>
+            </div>
+            
+            {/* 데스크톱 디자인 */}
+            <div className="hidden md:block">
+              <div className="flex items-center justify-between px-4 py-4">
+                <div className="flex items-center">
+                  <div className="bg-white/20 p-2 rounded-full mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold">새 버전이 준비되었습니다!</h3>
+                    <p className="text-sm text-white/80">
+                      {updateDetails.message}
+                      {updateDetails.version && <span className="ml-2 text-xs opacity-75">버전: {updateDetails.version}</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={applyUpdate}
+                    className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors shadow-md"
+                  >
+                    지금 업데이트
+                  </button>
+                  <button 
+                    onClick={() => setShowUpdateNotification(false)}
+                    className="text-white hover:text-white/80 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -1363,7 +1556,7 @@ function App() {
         }
       />
 
-      <main className="pt-16 pb-20 md:pb-6 min-h-screen">
+      <main className={`pt-16 pb-20 md:pb-6 min-h-screen ${showUpdateNotification ? 'mb-[calc(60px+8rem)]' : ''}`}>
         {activeTab === 'todo' ? (
           <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
             <div className="flex flex-col lg:flex-row gap-3">

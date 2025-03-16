@@ -19,6 +19,7 @@ import Settings from './components/Settings';
 import { useSwipeable } from 'react-swipeable';
 import { Toaster } from 'react-hot-toast';
 import { toast } from 'react-hot-toast';
+import { CSSTransition, SwitchTransition } from 'react-transition-group';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'todo' | 'memo' | 'backlog' | 'settings'>('todo');
@@ -42,6 +43,7 @@ function App() {
   const [calendarAnimation, setCalendarAnimation] = useState<'slide-left' | 'slide-right' | ''>('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const calendarRef = React.useRef<HTMLDivElement>(null);
+  const nodeRef = React.useRef(null);
 
   // Handle window resize to detect mobile/desktop
   useEffect(() => {
@@ -1364,157 +1366,169 @@ function App() {
       />
 
       <main className="pt-16 pb-20 md:pb-6 min-h-screen">
-        {activeTab === 'todo' ? (
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
-            <div className="flex flex-col lg:flex-row gap-3">
-              <div className="lg:w-1/3">
-                {/* 모바일 캘린더 토글 버튼 - 항상 표시 */}
-                <div className="md:hidden mb-3">
-                  <button
-                    onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-                    className="w-full flex items-center justify-between px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
-                  >
-                    <span className="font-medium">{isCalendarCollapsed ? '캘린더 열기' : '캘린더 접기'}</span>
-                    {isCalendarCollapsed ? (
-                      <ChevronDown className="w-5 h-5 transition-transform duration-300" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5 transition-transform duration-300" />
-                    )}
-                  </button>
-                </div>
-                
-                {/* 캘린더 컨테이너 */}
-                <div 
-                  ref={calendarRef}
-                  className={`transition-all duration-500 ease-in-out overflow-hidden ${
-                    isCalendarCollapsed 
-                      ? 'max-h-0 md:max-h-[1000px] opacity-0 md:opacity-100 scale-y-95 origin-top' 
-                      : 'max-h-[1000px] opacity-100 scale-y-100 origin-top'
-                  }`}
-                >
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-500 ${
-                    isCalendarCollapsed ? 'transform -translate-y-4 md:transform-none' : 'transform translate-y-0'
-                  }`}>
-                    <div className="p-6">
-                      <div
-                        {...swipeHandlers}
-                        className={`transition-transform duration-300 ease-in-out ${
-                          calendarAnimation === 'slide-left' 
-                            ? '-translate-x-full' 
-                            : calendarAnimation === 'slide-right'
-                            ? 'translate-x-full'
-                            : ''
+        <SwitchTransition mode="out-in">
+          <CSSTransition
+            key={activeTab}
+            nodeRef={nodeRef}
+            timeout={250}
+            classNames="page-transition"
+            unmountOnExit
+          >
+            <div ref={nodeRef} className="page-container">
+              {activeTab === 'todo' ? (
+                <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+                  <div className="flex flex-col lg:flex-row gap-3">
+                    <div className="lg:w-1/3">
+                      {/* 모바일 캘린더 토글 버튼 - 항상 표시 */}
+                      <div className="md:hidden mb-3">
+                        <button
+                          onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                          className="w-full flex items-center justify-between px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                        >
+                          <span className="font-medium">{isCalendarCollapsed ? '캘린더 열기' : '캘린더 접기'}</span>
+                          {isCalendarCollapsed ? (
+                            <ChevronDown className="w-5 h-5 transition-transform duration-300" />
+                          ) : (
+                            <ChevronUp className="w-5 h-5 transition-transform duration-300" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* 캘린더 컨테이너 */}
+                      <div 
+                        ref={calendarRef}
+                        className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                          isCalendarCollapsed 
+                            ? 'max-h-0 md:max-h-[1000px] opacity-0 md:opacity-100 scale-y-95 origin-top' 
+                            : 'max-h-[1000px] opacity-100 scale-y-100 origin-top'
                         }`}
                       >
-                        <Calendar
-                          onChange={(value) => {
-                            if (value instanceof Date) {
-                              setSelectedDate(value);
-                              setIsCalendarCollapsed(true);
-                            }
-                          }}
-                          value={selectedDate}
-                          tileContent={tileContent}
-                          className="w-full border-none"
-                          calendarType="US"
-                          tileClassName={({ date, view }) => 
-                            view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
-                          }
-                        />
+                        <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-500 ${
+                          isCalendarCollapsed ? 'transform -translate-y-4 md:transform-none' : 'transform translate-y-0'
+                        }`}>
+                          <div className="p-6">
+                            <div
+                              {...swipeHandlers}
+                              className={`transition-transform duration-300 ease-in-out ${
+                                calendarAnimation === 'slide-left' 
+                                  ? '-translate-x-full' 
+                                  : calendarAnimation === 'slide-right'
+                                  ? 'translate-x-full'
+                                  : ''
+                              }`}
+                            >
+                              <Calendar
+                                onChange={(value) => {
+                                  if (value instanceof Date) {
+                                    setSelectedDate(value);
+                                    setIsCalendarCollapsed(true);
+                                  }
+                                }}
+                                value={selectedDate}
+                                tileContent={tileContent}
+                                className="w-full border-none"
+                                calendarType="US"
+                                tileClassName={({ date, view }) => 
+                                  view === 'month' && date.getDay() === 6 ? 'text-blue-500' : null
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+                    <div className="lg:w-2/3">
+                      <TodoList
+                        todos={filteredTodos}
+                        selectedDate={selectedDate}
+                        newTodo={newTodo}
+                        setNewTodo={setNewTodo}
+                        addTodo={addTodo}
+                        toggleTodo={toggleTodo}
+                        deleteTodo={deleteTodo}
+                        updateTodoText={updateTodoText}
+                        updateTodoDescription={updateTodoDescription}
+                        updateTodoPriority={updateTodoPriority}
+                        updateTodoDate={updateTodoDate}
+                        addSubTodo={addSubTodo}
+                        updateSubTodo={updateSubTodo}
+                        toggleSubTodo={toggleSubTodo}
+                        deleteSubTodo={deleteSubTodo}
+                        onDateChange={setSelectedDate}
+                        onMoveToBacklog={moveTodoToBacklog}
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="lg:w-2/3">
-                <TodoList
-                  todos={filteredTodos}
-                  selectedDate={selectedDate}
-                  newTodo={newTodo}
-                  setNewTodo={setNewTodo}
-                  addTodo={addTodo}
-                  toggleTodo={toggleTodo}
-                  deleteTodo={deleteTodo}
-                  updateTodoText={updateTodoText}
-                  updateTodoDescription={updateTodoDescription}
-                  updateTodoPriority={updateTodoPriority}
-                  updateTodoDate={updateTodoDate}
-                  addSubTodo={addSubTodo}
-                  updateSubTodo={updateSubTodo}
-                  toggleSubTodo={toggleSubTodo}
-                  deleteSubTodo={deleteSubTodo}
-                  onDateChange={setSelectedDate}
-                  onMoveToBacklog={moveTodoToBacklog}
-                />
-              </div>
+              ) : activeTab === 'backlog' ? (
+                <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+                  <BacklogList
+                    todos={backlogTodos}
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    newTodo={newTodo}
+                    setNewTodo={setNewTodo}
+                    addTodo={addBacklogTodo}
+                    toggleTodo={toggleBacklogTodo}
+                    deleteTodo={deleteBacklogTodo}
+                    updateTodoText={updateBacklogTodoText}
+                    updateTodoDescription={updateBacklogTodoDescription}
+                    updateTodoPriority={updateBacklogTodoPriority}
+                    updateTodoCategory={updateBacklogTodoCategory}
+                    addSubTodo={addBacklogSubTodo}
+                    updateSubTodo={updateBacklogSubTodo}
+                    toggleSubTodo={toggleBacklogSubTodo}
+                    deleteSubTodo={deleteBacklogSubTodo}
+                    onAddCategory={handleAddCategory}
+                    onUpdateCategory={handleUpdateCategory}
+                    onDeleteCategory={handleDeleteCategory}
+                    onSelectCategory={setSelectedCategoryId}
+                    onMoveToTodo={moveBacklogToTodo}
+                  />
+                </div>
+              ) : activeTab === 'memo' ? (
+                <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+                  <MemoList
+                    memos={memos}
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    activeMemo={activeMemo}
+                    setActiveMemo={setActiveMemo}
+                    addMemo={addMemo}
+                    updateMemo={updateMemo}
+                    deleteMemo={deleteMemo}
+                    onAddCategory={handleAddCategory}
+                    onUpdateCategory={handleUpdateCategory}
+                    onDeleteCategory={handleDeleteCategory}
+                    onSelectCategory={setSelectedCategoryId}
+                  />
+                </div>
+              ) : activeTab === 'settings' && isMobile ? (
+                <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+                  <Settings
+                    isOpen={true}
+                    onClose={() => setActiveTab('todo')}
+                    onLogout={handleLogout}
+                    onDeleteAccount={handleDeleteAccount}
+                    isGuestMode={isGuestMode}
+                    isModal={false}
+                  />
+                </div>
+              ) : (
+                <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
+                  {/* Fallback for desktop when settings tab is selected */}
+                  {activeTab === 'settings' && !isMobile && (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <p className="text-center text-gray-500">
+                        설정은 화면 상단의 설정 아이콘을 클릭하여 열 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ) : activeTab === 'backlog' ? (
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
-            <BacklogList
-              todos={backlogTodos}
-              categories={categories}
-              selectedCategoryId={selectedCategoryId}
-              newTodo={newTodo}
-              setNewTodo={setNewTodo}
-              addTodo={addBacklogTodo}
-              toggleTodo={toggleBacklogTodo}
-              deleteTodo={deleteBacklogTodo}
-              updateTodoText={updateBacklogTodoText}
-              updateTodoDescription={updateBacklogTodoDescription}
-              updateTodoPriority={updateBacklogTodoPriority}
-              updateTodoCategory={updateBacklogTodoCategory}
-              addSubTodo={addBacklogSubTodo}
-              updateSubTodo={updateBacklogSubTodo}
-              toggleSubTodo={toggleBacklogSubTodo}
-              deleteSubTodo={deleteBacklogSubTodo}
-              onAddCategory={handleAddCategory}
-              onUpdateCategory={handleUpdateCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onSelectCategory={setSelectedCategoryId}
-              onMoveToTodo={moveBacklogToTodo}
-            />
-          </div>
-        ) : activeTab === 'memo' ? (
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
-            <MemoList
-              memos={memos}
-              categories={categories}
-              selectedCategoryId={selectedCategoryId}
-              activeMemo={activeMemo}
-              setActiveMemo={setActiveMemo}
-              addMemo={addMemo}
-              updateMemo={updateMemo}
-              deleteMemo={deleteMemo}
-              onAddCategory={handleAddCategory}
-              onUpdateCategory={handleUpdateCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onSelectCategory={setSelectedCategoryId}
-            />
-          </div>
-        ) : activeTab === 'settings' && isMobile ? (
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
-            <Settings
-              isOpen={true}
-              onClose={() => setActiveTab('todo')}
-              onLogout={handleLogout}
-              onDeleteAccount={handleDeleteAccount}
-              isGuestMode={isGuestMode}
-              isModal={false}
-            />
-          </div>
-        ) : (
-          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-0">
-            {/* Fallback for desktop when settings tab is selected */}
-            {activeTab === 'settings' && !isMobile && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <p className="text-center text-gray-500">
-                  설정은 화면 상단의 설정 아이콘을 클릭하여 열 수 있습니다.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+          </CSSTransition>
+        </SwitchTransition>
       </main>
 
       <BottomNavigation 

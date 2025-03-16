@@ -11,6 +11,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Code, Link as LinkIcon, Highlighter } from 'lucide-react';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 interface MemoListProps {
   memos: Memo[];
@@ -350,64 +351,69 @@ const MemoList: React.FC<MemoListProps> = ({
           </div>
           {/* 메모 목록 컨테이너: 모바일에서는 스크롤 없음, 데스크톱에서는 스크롤 있음 */}
           <div className="md:flex-1 md:overflow-y-auto overflow-x-hidden">
-            <ul className="divide-y divide-gray-200">
+            <TransitionGroup component="ul" className="divide-y divide-gray-200">
               {sortedAndFilteredMemos.map((memo) => (
-                <li
+                <CSSTransition
                   key={memo._id}
-                  onClick={(e) => handleMemoClick(memo, e)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleMemoLongPress(memo);
-                  }}
-                  className={`p-4 cursor-pointer transition-colors relative ${
-                    activeMemo?._id === memo._id && !isSelectionMode
-                      ? 'bg-indigo-50'
-                      : 'hover:bg-gray-50'
-                  }`}
+                  timeout={300}
+                  classNames="item"
                 >
-                  <div className="flex items-center gap-2">
-                    {isSelectionMode && (
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedMemos.has(memo._id)
-                            ? 'border-indigo-500 bg-indigo-500 text-white'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {selectedMemos.has(memo._id) && (
-                          <CheckCircle className="w-4 h-4" />
-                        )}
-                      </div>
-                    )}
-                    <div className="flex-grow">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {memo.title || '제목 없음'}
-                      </h3>
-                      <p className="text-sm text-gray-500 truncate mt-1">
-                        {stripHtmlTags(memo.content) || '내용 없음'}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <p className="text-xs text-gray-400">
-                          {format(new Date(memo.lastEdited), 'yyyy-MM-dd HH:mm')}
+                  <li
+                    onClick={(e) => handleMemoClick(memo, e)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      handleMemoLongPress(memo);
+                    }}
+                    className={`p-4 cursor-pointer transition-colors relative ${
+                      activeMemo?._id === memo._id && !isSelectionMode
+                        ? 'bg-indigo-50'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isSelectionMode && (
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            selectedMemos.has(memo._id)
+                              ? 'border-indigo-500 bg-indigo-500 text-white'
+                              : 'border-gray-300'
+                          }`}
+                        >
+                          {selectedMemos.has(memo._id) && (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex-grow">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {memo.title || '제목 없음'}
+                        </h3>
+                        <p className="text-sm text-gray-500 truncate mt-1">
+                          {stripHtmlTags(memo.content) || '내용 없음'}
                         </p>
-                        {memo.categoryId && (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: getCategory(memo.categoryId)?.color + '20',
-                              color: getCategory(memo.categoryId)?.color
-                            }}
-                          >
-                            <Tag className="w-3 h-3" />
-                            {getCategory(memo.categoryId)?.name}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-xs text-gray-400">
+                            {format(new Date(memo.lastEdited), 'yyyy-MM-dd HH:mm')}
+                          </p>
+                          {memo.categoryId && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                              style={{
+                                backgroundColor: getCategory(memo.categoryId)?.color + '20',
+                                color: getCategory(memo.categoryId)?.color
+                              }}
+                            >
+                              <Tag className="w-3 h-3" />
+                              {getCategory(memo.categoryId)?.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
+                  </li>
+                </CSSTransition>
               ))}
-            </ul>
+            </TransitionGroup>
           </div>
         </div>
       </div>

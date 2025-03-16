@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 interface BacklogListProps {
   todos: BacklogTodo[];
@@ -258,201 +259,208 @@ const BacklogList: React.FC<BacklogListProps> = ({
             </button>
           </div>
 
-          {/* 할 일 목록 */}
+          {/* 할 일 목록 - TransitionGroup 추가 */}
           <div className="space-y-3">
-            {filteredAndSortedTodos.map((todo) => (
-              <div
-                key={todo._id}
-                className={`bg-gray-50 rounded-lg p-3 sm:p-4 transition-all hover:shadow-md border border-gray-100 ${
-                  todo.completed ? 'opacity-75' : ''
-                }`}
-              >
-                <div className="flex flex-col gap-2">
-                  {/* 메인 할 일 영역 */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleToggleTodo(todo)}
-                      className={`flex-shrink-0 focus:outline-none ${
-                        todo.completed ? 'text-green-500' : 'text-gray-400'
-                      } hover:scale-110 transition-transform`}
-                    >
-                      {todo.completed ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
-                    </button>
-                    <input
-                      type="text"
-                      value={todo.text}
-                      onChange={(e) => updateTodoText(todo._id, e.target.value)}
-                      className={`flex-grow min-w-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 text-sm sm:text-base ${
-                        todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
-                      }`}
-                    />
-                    <button
-                      onClick={() => deleteTodo(todo._id)}
-                      className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* 뱃지 영역 - 모바일에서는 할 일 텍스트 아래에 표시 */}
-                  {!todo.completed && (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* 카테고리 뱃지 */}
-                      <div className="relative" id={`category-dropdown-${todo._id}`}>
+            <TransitionGroup component={null}>
+              {filteredAndSortedTodos.map((todo) => (
+                <CSSTransition
+                  key={todo._id}
+                  timeout={300}
+                  classNames="item"
+                >
+                  <div
+                    className={`bg-gray-50 rounded-lg p-3 sm:p-4 transition-all hover:shadow-md border border-gray-100 ${
+                      todo.completed ? 'opacity-75' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {/* 메인 할 일 영역 */}
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setOpenCategoryId(openCategoryId === todo._id ? null : todo._id)}
-                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                            todo.categoryId
-                              ? `hover:opacity-80`
-                              : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
-                          }`}
-                          style={todo.categoryId ? {
-                            backgroundColor: getCategory(todo.categoryId)?.color + '20',
-                            color: getCategory(todo.categoryId)?.color
-                          } : undefined}
-                        >
-                          <Tag className="w-3 h-3" />
-                          {todo.categoryId ? getCategory(todo.categoryId)?.name : ''}
-                        </button>
-                        {openCategoryId === todo._id && (
-                          <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                            <div className="p-2">
-                              <div className="flex justify-between items-center mb-2 px-3 py-2">
-                                <span className="text-sm font-medium">카테고리</span>
-                                <button
-                                  onClick={() => setOpenCategoryId(null)}
-                                  className="text-gray-400 hover:text-gray-600"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  updateTodoCategory(todo._id, null);
-                                  setOpenCategoryId(null);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
-                              >
-                                없음
-                              </button>
-                              {categories.map(category => (
-                                <button
-                                  key={category._id}
-                                  onClick={() => {
-                                    updateTodoCategory(todo._id, category._id);
-                                    setOpenCategoryId(null);
-                                  }}
-                                  className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                                >
-                                  <span
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: category.color }}
-                                  />
-                                  {category.name}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 우선순위 뱃지 */}
-                      <div className="relative" id={`priority-dropdown-${todo._id}`}>
-                        <button
-                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
-                          onClick={() => setOpenPriorityId(openPriorityId === todo._id ? null : todo._id)}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
-                          {priorityConfig[todo.priority].label}
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                        {openPriorityId === todo._id && (
-                          <div className="absolute left-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                            {Object.entries(priorityConfig).map(([key, config]) => (
-                              <button
-                                key={key}
-                                onClick={() => {
-                                  updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
-                                  setOpenPriorityId(null);
-                                }}
-                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2 ${
-                                  todo.priority === key ? 'bg-gray-50 font-medium' : ''
-                                }`}
-                              >
-                                <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
-                                {config.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 캘린더 등록 버튼 */}
-                      <button
-                        onClick={() => handleMoveToTodo(todo._id)}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-                      >
-                        <CalendarPlus className="w-3 h-3" />
-                        캘린더 등록
-                      </button>
-                    </div>
-                  )}
-
-                  {/* 설명 입력 영역 */}
-                  <input
-                    type="text"
-                    value={todo.description}
-                    onChange={(e) => updateTodoDescription(todo._id, e.target.value)}
-                    className="mt-1 w-full px-3 py-1.5 text-xs text-gray-600 bg-white rounded border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="설명 추가..."
-                  />
-
-                  {/* 하위 할 일 목록 */}
-                  <ul className="space-y-2.5">
-                    {todo.subTodos.map((subTodo) => (
-                      <li key={subTodo._id} className="flex items-start gap-2 pl-7 relative">
-                        <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
-                        
-                        <button
-                          onClick={() => toggleSubTodo(todo._id, subTodo._id)}
-                          className={`flex-shrink-0 focus:outline-none mt-0.5 ${
-                            subTodo.completed ? 'text-green-500' : 'text-gray-400'
+                          onClick={() => handleToggleTodo(todo)}
+                          className={`flex-shrink-0 focus:outline-none ${
+                            todo.completed ? 'text-green-500' : 'text-gray-400'
                           } hover:scale-110 transition-transform`}
                         >
-                          {subTodo.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                          {todo.completed ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                         </button>
-                        
                         <input
                           type="text"
-                          value={subTodo.text}
-                          onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
-                          className={`flex-grow min-w-0 bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 py-0.5 ${
-                            subTodo.completed ? 'line-through text-gray-500' : 'text-gray-700'
+                          value={todo.text}
+                          onChange={(e) => updateTodoText(todo._id, e.target.value)}
+                          className={`flex-grow min-w-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 text-sm sm:text-base ${
+                            todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
                           }`}
-                          placeholder="하위 할 일..."
                         />
-                        
                         <button
-                          onClick={() => deleteSubTodo(todo._id, subTodo._id)}
-                          className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform mt-0.5"
+                          onClick={() => deleteTodo(todo._id)}
+                          className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
 
-                  {/* 하위 할 일 추가 버튼 */}
-                  <button
-                    onClick={() => addSubTodo(todo._id)}
-                    className="text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
-                  >
-                    <Plus className="w-4 h-4" />
-                    하위 할 일 추가
-                  </button>
-                </div>
-              </div>
-            ))}
+                      {/* 뱃지 영역 - 모바일에서는 할 일 텍스트 아래에 표시 */}
+                      {!todo.completed && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* 카테고리 뱃지 */}
+                          <div className="relative" id={`category-dropdown-${todo._id}`}>
+                            <button
+                              onClick={() => setOpenCategoryId(openCategoryId === todo._id ? null : todo._id)}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                                todo.categoryId
+                                  ? `hover:opacity-80`
+                                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                              }`}
+                              style={todo.categoryId ? {
+                                backgroundColor: getCategory(todo.categoryId)?.color + '20',
+                                color: getCategory(todo.categoryId)?.color
+                              } : undefined}
+                            >
+                              <Tag className="w-3 h-3" />
+                              {todo.categoryId ? getCategory(todo.categoryId)?.name : ''}
+                            </button>
+                            {openCategoryId === todo._id && (
+                              <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                <div className="p-2">
+                                  <div className="flex justify-between items-center mb-2 px-3 py-2">
+                                    <span className="text-sm font-medium">카테고리</span>
+                                    <button
+                                      onClick={() => setOpenCategoryId(null)}
+                                      className="text-gray-400 hover:text-gray-600"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      updateTodoCategory(todo._id, null);
+                                      setOpenCategoryId(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
+                                  >
+                                    없음
+                                  </button>
+                                  {categories.map(category => (
+                                    <button
+                                      key={category._id}
+                                      onClick={() => {
+                                        updateTodoCategory(todo._id, category._id);
+                                        setOpenCategoryId(null);
+                                      }}
+                                      className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <span
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: category.color }}
+                                      />
+                                      {category.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 우선순위 뱃지 */}
+                          <div className="relative" id={`priority-dropdown-${todo._id}`}>
+                            <button
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors ${priorityConfig[todo.priority].color}`}
+                              onClick={() => setOpenPriorityId(openPriorityId === todo._id ? null : todo._id)}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig[todo.priority].dotColor}`} />
+                              {priorityConfig[todo.priority].label}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {openPriorityId === todo._id && (
+                              <div className="absolute left-0 mt-1 w-28 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                {Object.entries(priorityConfig).map(([key, config]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => {
+                                      updateTodoPriority(todo._id, key as 'high' | 'medium' | 'low');
+                                      setOpenPriorityId(null);
+                                    }}
+                                    className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2 ${
+                                      todo.priority === key ? 'bg-gray-50 font-medium' : ''
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+                                    {config.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 캘린더 등록 버튼 */}
+                          <button
+                            onClick={() => handleMoveToTodo(todo._id)}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                          >
+                            <CalendarPlus className="w-3 h-3" />
+                            캘린더 등록
+                          </button>
+                        </div>
+                      )}
+
+                      {/* 설명 입력 영역 */}
+                      <input
+                        type="text"
+                        value={todo.description}
+                        onChange={(e) => updateTodoDescription(todo._id, e.target.value)}
+                        className="mt-1 w-full px-3 py-1.5 text-xs text-gray-600 bg-white rounded border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="설명 추가..."
+                      />
+
+                      {/* 하위 할 일 목록 */}
+                      <ul className="space-y-2.5">
+                        {todo.subTodos.map((subTodo) => (
+                          <li key={subTodo._id} className="flex items-start gap-2 pl-7 relative">
+                            <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
+                            
+                            <button
+                              onClick={() => toggleSubTodo(todo._id, subTodo._id)}
+                              className={`flex-shrink-0 focus:outline-none mt-0.5 ${
+                                subTodo.completed ? 'text-green-500' : 'text-gray-400'
+                              } hover:scale-110 transition-transform`}
+                            >
+                              {subTodo.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                            </button>
+                            
+                            <input
+                              type="text"
+                              value={subTodo.text}
+                              onChange={(e) => updateSubTodo(todo._id, subTodo._id, e.target.value)}
+                              className={`flex-grow min-w-0 bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-2 py-0.5 ${
+                                subTodo.completed ? 'line-through text-gray-500' : 'text-gray-700'
+                              }`}
+                              placeholder="하위 할 일..."
+                            />
+                            
+                            <button
+                              onClick={() => deleteSubTodo(todo._id, subTodo._id)}
+                              className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform mt-0.5"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* 하위 할 일 추가 버튼 */}
+                      <button
+                        onClick={() => addSubTodo(todo._id)}
+                        className="text-sm sm:text-base text-indigo-600 hover:text-indigo-700 focus:outline-none pl-6 sm:pl-8 flex items-center gap-2 hover:underline"
+                      >
+                        <Plus className="w-4 h-4" />
+                        하위 할 일 추가
+                      </button>
+                    </div>
+                  </div>
+                </CSSTransition>
+              ))}
+            </TransitionGroup>
 
             {/* 할 일이 없을 때 메시지 */}
             {filteredAndSortedTodos.length === 0 && (

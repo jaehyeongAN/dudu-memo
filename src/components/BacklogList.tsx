@@ -162,7 +162,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
       toast((t) => (
         <div className="flex flex-col gap-3">
           <div className="font-medium">
-            해당 백로그를 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
+            해당 보관 할일을 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
           </div>
           <div className="flex justify-end gap-2">
             <button
@@ -227,7 +227,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-800">
-              백로그
+              보관함
               {selectedCategoryId && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
                   {getCategory(selectedCategoryId)?.name} 카테고리

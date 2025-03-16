@@ -204,7 +204,7 @@ const TodoList: React.FC<TodoListProps> = ({
       toast((t) => (
         <div className="flex flex-col gap-3">
           <div className="font-medium">
-            해당 할 일을 백로그로 이동하시겠습니까?
+            해당 할 일을 보관함으로 이동하시겠습니까?
           </div>
           <div className="flex justify-end gap-2">
             <button
@@ -218,7 +218,7 @@ const TodoList: React.FC<TodoListProps> = ({
               onClick={() => {
                 onMoveToBacklog(todoId);
                 toast.dismiss(t.id);
-                showSuccessToast('할 일을 백로그에 보관하였습니다.');
+                showSuccessToast('할 일을 보관함에 보관하였습니다.');
               }}
             >
               확인
@@ -373,13 +373,13 @@ const TodoList: React.FC<TodoListProps> = ({
                         하루 미루기
                       </button>
 
-                      {/* 백로그로 이동 버튼 */}
+                      {/* 보관함 이동 버튼 */}
                       <button
                         onClick={() => handleMoveToBacklog(todo._id)}
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                       >
                         <PackagePlus className="w-3 h-3" />
-                        백로그 보관
+                        보관함 이동
                       </button>
                     </div>
                   )}

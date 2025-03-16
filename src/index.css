@@ -355,3 +355,51 @@ input:focus, textarea:focus {
 .item-enter-active:nth-child(4) { transition-delay: 90ms; }
 .item-enter-active:nth-child(5) { transition-delay: 120ms; }
 .item-enter-active:nth-child(n+6) { transition-delay: 150ms; }
+
+/* Memo Detail Animation */
+.memo-detail-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.memo-detail-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
+
+.memo-detail-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.memo-detail-exit-active {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Mobile specific animation (slide up from bottom) */
+@media (max-width: 768px) {
+  .memo-detail-enter {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  
+  .memo-detail-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+  }
+  
+  .memo-detail-exit {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .memo-detail-exit-active {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 200ms ease-in, transform 200ms ease-in;
+  }
+}

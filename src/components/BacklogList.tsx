@@ -140,6 +140,48 @@ const BacklogList: React.FC<BacklogListProps> = ({
     showSuccessToast(todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉');
   };
 
+  // 할 일 삭제 처리 함수 추가
+  const handleDeleteTodo = (todoId: string) => {
+    // 기존의 모든 토스트를 제거
+    toast.dismiss();
+    
+    // 선택형 토스트
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          정말 이 할 일을 삭제하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+            onClick={() => {
+              deleteTodo(todoId);
+              toast.dismiss(t.id);
+              showSuccessToast('할 일이 삭제되었습니다.');
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
+  };
+
   // 알림형 토스트를 위한 별도 함수
   const showSuccessToast = (message: string) => {
     toast.success(
@@ -293,7 +335,7 @@ const BacklogList: React.FC<BacklogListProps> = ({
                           }`}
                         />
                         <button
-                          onClick={() => deleteTodo(todo._id)}
+                          onClick={() => handleDeleteTodo(todo._id)}
                           className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
                         >
                           <Trash2 className="w-5 h-5" />

@@ -264,7 +264,7 @@ app.post('/api/signup', async (req, res) => {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
         title: '✔︎ Doo!Du 소개 글 ✨',
-        content: '"Think Simple, Act Fast!"\n\n세상에는 이미 다양한 투두/메모 서비스가 많습니다. 그럼에도 ✔︎ Doo!Du는 가장 쉽고 빠르게 일의 본질에 집중할 수 있도록 돕기 위해 만들어졌습니다.\n\n	•	캘린더 기반 할 일 관리로 하루를 체계적으로 설계하고,\n	•	백로그에 아이디어와 할 일을 잊지 않고 보관하며,\n	•	실시간 저장되는 메모로 생각을 놓치지 않아요.\n\n모든 기능이 직관적이고 빠르게 설계되어, 누구나 쉽게 사용할 수 있어요.\n지금 Doo!Du와 함께 더 정리된 일상을 만들어보세요! 🗓️✨',
+        content: '"Think Simple, Act Fast!"\n\n세상에는 이미 다양한 투두/메모 서비스가 많습니다. 그럼에도 ✔︎ Doo!Du는 가장 쉽고 빠르게 일의 본질에 집중할 수 있도록 돕기 위해 만들어졌습니다.\n\n	•	캘린더 기반 할 일 관리로 하루를 체계적으로 설계하고,\n	•	보관함에 아이디어와 할 일을 잊지 않고 보관하며,\n	•	실시간 저장되는 메모로 생각을 놓치지 않아요.\n\n모든 기능이 직관적이고 빠르게 설계되어, 누구나 쉽게 사용할 수 있어요.\n지금 Doo!Du와 함께 더 정리된 일상을 만들어보세요! 🗓️✨',
         categoryId: categories[2]._id,
         lastEdited: new Date()
       },
@@ -298,7 +298,7 @@ app.post('/api/signup', async (req, res) => {
       //   priority: 'high',
       //   subTodos: [
       //     { text: '🗓️ 캘린더 기반 할 일 관리: 오늘의 계획부터 장기 목표까지 체계적으로 정리!', completed: false },
-      //     { text: '📦 백로그 보관소: 일정에 등록하기 부담스러운 일은 백로그로!', completed: false },
+      //     { text: '📦 보관함 보관소: 일정에 등록하기 부담스러운 일은 보관함로!', completed: false },
       //     { text: '✏️ 메모: 떠오르는 생각을 빠르게 적고, 아이디어를 카테고리별로 깔끔하게!', completed: false },
       //     { text: '🏢 워크스페이스: 개인, 업무, 프로젝트 등 공간별로 완벽히 분리된 관리!', completed: false }
       //   ]
@@ -314,7 +314,7 @@ app.post('/api/signup', async (req, res) => {
         subTodos: [
           { text: '🔥 회원가입 및 로그인하기', completed: true },
           { text: '🗓️ 캘린더에 할 일 등록하기', completed: false },
-          { text: '📦 백로그에 일정 보관해놓기', completed: false },
+          { text: '📦 보관함에 일정 보관해놓기', completed: false },
           { text: '✏️ 메모에 아이디어 작성하기', completed: false },
           { text: '🏢 워크스페이스에 분리하기', completed: false }
         ]
@@ -330,7 +330,7 @@ app.post('/api/signup', async (req, res) => {
       //   subTodos: [
       //     { text: '1️⃣ 회원가입 및 로그인하기', completed: true },
       //     { text: '2️⃣ "할 일" 살펴보기', completed: false },
-      //     { text: '3️⃣ "백로그" 살펴보기', completed: false },
+      //     { text: '3️⃣ "보관함" 살펴보기', completed: false },
       //     { text: '4️⃣ "메모" 살펴보기', completed: false },
       //     { text: '5️⃣ "워크스페이스" 살펴보기', completed: false }
       //   ]
@@ -355,13 +355,13 @@ app.post('/api/signup', async (req, res) => {
       {
         userId: user._id,
         workspaceId: defaultWorkspace._id,
-        text: '백로그 활용하기 👏',
+        text: '보관함 활용하기 👏',
         completed: false,
-        description: '일정에 구애받지 않고 해야할 일을 백로그에 등록해보세요.',
+        description: '일정에 구애받지 않고 해야할 일을 보관함에 등록해보세요.',
         priority: 'medium',
         categoryId: categories[2]._id,
         subTodos: [
-          { text: '✅ 백로그 추가해보기', completed: false },
+          { text: '✅ 보관함 추가해보기', completed: false },
           { text: '📌 우선순위 지정해보기 (우선순위 정렬)', completed: false },
           { text: '🗂️ 카테고리 관리하기 (카테고리별 필터링) ', completed: false },
         ]
@@ -503,7 +503,7 @@ app.delete('/api/categories/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // 관련된 메모와 백로그 항목의 categoryId를 null로 설정
+    // 관련된 메모와 보관함 항목의 categoryId를 null로 설정
     await Promise.all([
       Memo.updateMany(
         { categoryId: req.params.id },
@@ -748,7 +748,7 @@ app.delete('/api/users/me', auth, async (req, res) => {
   }
 });
 
-// 할 일을 백로그로 이동하는 엔드포인트
+// 할 일을 보관함로 이동하는 엔드포인트
 app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
   try {
     const todo = await Todo.findOne({ 
@@ -761,7 +761,7 @@ app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
       return res.status(404).json({ message: 'Todo not found' });
     }
 
-    // 새로운 백로그 항목 생성
+    // 새로운 보관함 항목 생성
     const newBacklogTodo = new BacklogTodo({
       text: todo.text,
       completed: todo.completed,
@@ -783,7 +783,7 @@ app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
   }
 });
 
-// 백로그를 할 일로 이동하는 엔드포인트
+// 보관함를 할 일로 이동하는 엔드포인트
 app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
   try {
     const backlogTodo = await BacklogTodo.findOne({ 
@@ -809,7 +809,7 @@ app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
     });
     await newTodo.save();
 
-    // 백로그 항목 삭제
+    // 보관함 항목 삭제
     await BacklogTodo.findByIdAndDelete(req.params.id);
 
     res.json(newTodo);

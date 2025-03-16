@@ -31,7 +31,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           }`}
         >
           <Archive className="w-6 h-6" />
-          <span className="text-xs mt-1">백로그</span>
+          <span className="text-xs mt-1">보관함</span>
         </button>
         <button
           onClick={() => setActiveTab('memo')}

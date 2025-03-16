@@ -36,6 +36,7 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.1",
     "react-swipeable": "^7.0.1",
+    "react-transition-group": "^4.4.5",
     "vite-plugin-pwa": "^0.19.7",
     "winston": "^3.12.0"
   },

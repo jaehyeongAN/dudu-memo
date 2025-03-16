@@ -199,12 +199,54 @@ const TodoList: React.FC<TodoListProps> = ({
     showSuccessToast(todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉');
   };
 
+  // 할 일 삭제 처리 함수 추가
+  const handleDeleteTodo = (todoId: string) => {
+    // 기존의 모든 토스트를 제거
+    toast.dismiss();
+    
+    // 선택형 토스트
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          정말 이 할 일을 삭제하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+            onClick={() => {
+              deleteTodo(todoId);
+              toast.dismiss(t.id);
+              showSuccessToast('할 일이 삭제되었습니다.');
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
+  };
+
   const handleMoveToBacklog = (todoId: string) => {
     const showConfirmToast = () => {
       toast((t) => (
         <div className="flex flex-col gap-3">
           <div className="font-medium">
-            해당 할 일을 백로그로 이동하시겠습니까?
+            해당 할 일을 보관함으로 이동하시겠습니까?
           </div>
           <div className="flex justify-end gap-2">
             <button
@@ -218,7 +260,7 @@ const TodoList: React.FC<TodoListProps> = ({
               onClick={() => {
                 onMoveToBacklog(todoId);
                 toast.dismiss(t.id);
-                showSuccessToast('할 일을 백로그에 보관하였습니다.');
+                showSuccessToast('할 일을 보관함에 보관하였습니다.');
               }}
             >
               확인
@@ -322,7 +364,7 @@ const TodoList: React.FC<TodoListProps> = ({
                       }`}
                     />
                     <button
-                      onClick={() => deleteTodo(todo._id)}
+                      onClick={() => handleDeleteTodo(todo._id)}
                       className="flex-shrink-0 text-red-500 hover:text-red-600 focus:outline-none hover:scale-110 transition-transform"
                       aria-label="할 일 삭제"
                     >
@@ -373,13 +415,13 @@ const TodoList: React.FC<TodoListProps> = ({
                         하루 미루기
                       </button>
 
-                      {/* 백로그로 이동 버튼 */}
+                      {/* 보관함 이동 버튼 */}
                       <button
                         onClick={() => handleMoveToBacklog(todo._id)}
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                       >
                         <PackagePlus className="w-3 h-3" />
-                        백로그 보관
+                        보관함 이동
                       </button>
                     </div>
                   )}

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App.v250318.tsx'
+import App from './App.tsx'
 import './index.css'
 import { registerServiceWorker } from './pwa'
 

@@ -7,41 +7,277 @@ import dotenv from 'dotenv';
 import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+
+// 환경 변수 로드 전에 NODE_ENV 설정
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Winston 로거 설정
+// 환경 설정 관리 개선
+const config = {
+  port: process.env.PORT || 5001,
+  jwtSecret: process.env.JWT_SECRET || 'default_secret_should_be_changed_in_production',
+  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/doodu',
+  environment: process.env.NODE_ENV,
+  isProduction: process.env.NODE_ENV === 'production',
+  logLevel: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')
+};
+
+// 개발 환경에서 중요 설정 검증
+if (config.environment === 'development') {
+  if (config.jwtSecret === 'default_secret_should_be_changed_in_production') {
+    console.warn('Warning: Using default JWT secret. Set JWT_SECRET environment variable in production.');
+  }
+}
+
+// Winston 로거 설정 개선
 const logger = winston.createLogger({
-  level: 'info',
+  level: config.logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
   ),
+  defaultMeta: { service: 'doodu-api' },
   transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
+    new winston.transports.File({ 
+      filename: 'logs/error.log', 
+      level: 'error',
+      maxsize: 10485760, // 10MB
+      maxFiles: 5
+    }),
+    new winston.transports.File({ 
+      filename: 'logs/combined.log',
+      maxsize: 10485760, // 10MB
+      maxFiles: 5
     })
   ]
 });
 
+// 개발 환경에서는 콘솔 로그 추가
+if (config.environment !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  }));
+}
+
+// 애플리케이션 초기화
 const app = express();
 
+// 기본 미들웨어
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));  // 요청 크기 제한
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => logger.info('Connected to MongoDB'))
-  .catch((error) => logger.error('MongoDB connection error:', error));
+// 보안 미들웨어
+app.use(helmet()); // 보안 관련 HTTP 헤더 설정
+app.use(mongoSanitize()); // NoSQL 인젝션 방지
+
+// 압축 미들웨어
+app.use(compression()); // 응답 데이터 압축
+
+// 속도 제한 미들웨어 - 로그인과 일반 API에 다른 제한 적용
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 20, // 각 IP당 15분간 최대 20번 요청 가능
+  message: { message: 'Too many login attempts, please try again later' },
+  standardHeaders: true, 
+  legacyHeaders: false
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 200, // 각 IP당 15분간 최대 200번 요청 가능
+  message: { message: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// 로그인, 회원가입 라우트에 더 엄격한 제한 적용
+app.use('/api/login', loginLimiter);
+app.use('/api/signup', loginLimiter);
+
+// 다른 API 라우트에 덜 엄격한 제한 적용
+app.use('/api', apiLimiter);
+
+// 요청 로깅 미들웨어
+app.use((req, res, next) => {
+  // 프로덕션 환경에서는 중요 정보 감춤
+  const maskedUrl = config.isProduction
+    ? req.path
+    : `${req.path}${req.query ? `?${JSON.stringify(req.query)}` : ''}`;
+
+  logger.info(`${req.method} ${maskedUrl}`, {
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+  
+  // 응답 시간 측정
+  const start = Date.now();
+  res.on('finish', () => {
+    const responseTime = Date.now() - start;
+    const logLevel = res.statusCode >= 400 ? 'warn' : 'info';
+    
+    logger[logLevel](`${req.method} ${maskedUrl} ${res.statusCode} - ${responseTime}ms`);
+  });
+  
+  next();
+});
+
+// 중앙화된 에러 핸들링 유틸리티 추가
+const handleApiError = (res, error, operation, resourceType) => {
+  const errorMessage = `Error ${operation} ${resourceType}`;
+  logger.error(`${errorMessage}:`, error);
+  
+  // 클라이언트에게 전달할 에러 메시지 구성
+  const clientErrorMessage = process.env.NODE_ENV === 'production' 
+    ? errorMessage 
+    : `${errorMessage}: ${error.message}`;
+    
+  // MongoDB 특정 에러 처리
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({ 
+      message: clientErrorMessage,
+      details: Object.values(error.errors).map(err => err.message)
+    });
+  }
+  
+  if (error.name === 'MongoServerError' && error.code === 11000) {
+    return res.status(409).json({ 
+      message: 'Duplicate entry exists',
+      field: Object.keys(error.keyPattern)[0]
+    });
+  }
+  
+  return res.status(500).json({ message: clientErrorMessage });
+};
+
+// CRUD 작업을 위한 유틸리티 함수 추가
+const createCrudHandlers = (Model, resourceName) => {
+  return {
+    // 목록 조회
+    getAll: async (req, res) => {
+      try {
+        const items = await Model.find({ 
+          userId: req.userId,
+          workspaceId: req.workspaceId
+        }).sort({ updatedAt: -1, createdAt: -1 });
+        
+        res.json(items);
+      } catch (error) {
+        handleApiError(res, error, 'fetching', resourceName);
+      }
+    },
+    
+    // 단일 항목 조회
+    getOne: async (req, res) => {
+      try {
+        const item = await Model.findOne({ 
+          _id: req.params.id, 
+          userId: req.userId,
+          workspaceId: req.workspaceId
+        });
+        
+        if (!item) {
+          return res.status(404).json({ message: `${resourceName} not found` });
+        }
+        
+        res.json(item);
+      } catch (error) {
+        handleApiError(res, error, 'fetching', resourceName);
+      }
+    },
+    
+    // 항목 생성
+    create: async (req, res) => {
+      try {
+        const item = new Model({ 
+          ...req.body, 
+          userId: req.userId,
+          workspaceId: req.workspaceId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        await item.save();
+        res.status(201).json(item);
+      } catch (error) {
+        handleApiError(res, error, 'creating', resourceName);
+      }
+    },
+    
+    // 항목 업데이트
+    update: async (req, res) => {
+      try {
+        // updatedAt 필드 자동 업데이트
+        const updateData = {
+          ...req.body,
+          updatedAt: new Date()
+        };
+        
+        const item = await Model.findOneAndUpdate(
+          { 
+            _id: req.params.id, 
+            userId: req.userId,
+            workspaceId: req.workspaceId
+          },
+          updateData,
+          { new: true, runValidators: true }
+        );
+        
+        if (!item) {
+          return res.status(404).json({ message: `${resourceName} not found` });
+        }
+        
+        res.json(item);
+      } catch (error) {
+        handleApiError(res, error, 'updating', resourceName);
+      }
+    },
+    
+    // 항목 삭제
+    delete: async (req, res) => {
+      try {
+        const item = await Model.findOneAndDelete({ 
+          _id: req.params.id, 
+          userId: req.userId,
+          workspaceId: req.workspaceId
+        });
+        
+        if (!item) {
+          return res.status(404).json({ message: `${resourceName} not found` });
+        }
+        
+        res.json({ 
+          message: `${resourceName} deleted successfully`,
+          deletedId: req.params.id
+        });
+      } catch (error) {
+        handleApiError(res, error, 'deleting', resourceName);
+      }
+    }
+  };
+};
+
+mongoose.connect(config.mongoUri, {
+  serverSelectionTimeoutMS: 5000, // 서버 선택 타임아웃
+  socketTimeoutMS: 45000, // 소켓 타임아웃
+})
+.then(() => logger.info('Connected to MongoDB'))
+.catch((error) => {
+  logger.error('MongoDB connection error:', error);
+  process.exit(1); // 데이터베이스 연결 실패 시 애플리케이션 종료
+});
 
 // Workspace Schema
 const WorkspaceSchema = new mongoose.Schema({
@@ -59,7 +295,8 @@ const UserSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
-  currentWorkspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' }
+  currentWorkspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
+  passwordChangedAt: Date
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -125,92 +362,207 @@ const MemoSchema = new mongoose.Schema({
 
 const Memo = mongoose.model('Memo', MemoSchema);
 
-// Auth 미들웨어 수정
+// Auth 미들웨어 개선
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
       return res.status(401).json({ message: 'Authentication required' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+    
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret);
+      const user = await User.findById(decoded.userId).select('-password'); // 비밀번호 제외
+      
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      
+      // 토큰 발급 시간 검증 (jwt iat claim)
+      const tokenIssuedAt = decoded.iat * 1000; // JWT의 iat는 초 단위, JS는 밀리초 단위
+      const passwordChangedAt = user.passwordChangedAt ? user.passwordChangedAt.getTime() : 0;
+      
+      // 비밀번호 변경 후 발급된 토큰인지 확인
+      if (passwordChangedAt > tokenIssuedAt) {
+        return res.status(401).json({ 
+          message: 'Password was changed after this token was issued. Please login again.' 
+        });
+      }
+      
+      // Add user to request object for easier access
+      req.user = user;
+      req.userId = decoded.userId;
+      req.workspaceId = user.currentWorkspaceId;
+      
+      // Validate that workspaceId exists if it's set
+      if (req.workspaceId) {
+        const workspaceExists = await Workspace.exists({ 
+          _id: req.workspaceId, 
+          ownerId: req.userId 
+        });
+        
+        if (!workspaceExists) {
+          return res.status(400).json({ 
+            message: 'Invalid workspace. Please select a valid workspace.' 
+          });
+        }
+      } else {
+        return res.status(400).json({ 
+          message: 'No workspace selected. Please select a workspace.' 
+        });
+      }
+      
+      // 마지막 활동 시간 업데이트 (성능상 이유로 비동기로 실행, 응답을 기다리지 않음)
+      User.updateOne(
+        { _id: user._id },
+        { lastActive: new Date() }
+      ).catch(err => logger.warn('Failed to update last active time', err));
+      
+      next();
+    } catch (jwtError) {
+      logger.error('JWT verification error:', jwtError);
+      return res.status(401).json({ message: 'Invalid or expired token' });
     }
-    req.userId = decoded.userId;
-    req.workspaceId = user.currentWorkspaceId;
-    next();
   } catch (error) {
     logger.error('Authentication error:', error);
-    res.status(401).json({ message: 'Please authenticate' });
+    return res.status(500).json({ message: 'Internal server error during authentication' });
   }
 };
 
 // Workspace 라우트
 app.post('/api/workspaces', auth, async (req, res) => {
   try {
+    // Basic validation
+    const { name } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Workspace name is required' });
+    }
+    
     const workspace = new Workspace({
-      name: req.body.name,
-      description: req.body.description,
-      ownerId: req.userId
+      name: name.trim(),
+      description: req.body.description || '',
+      ownerId: req.userId,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
+    
     await workspace.save();
     res.status(201).json(workspace);
   } catch (error) {
-    logger.error('Error creating workspace:', error);
-    res.status(500).json({ message: 'Error creating workspace' });
+    handleApiError(res, error, 'creating', 'workspace');
   }
 });
 
 app.get('/api/workspaces', auth, async (req, res) => {
   try {
-    const workspaces = await Workspace.find({ ownerId: req.userId });
+    const workspaces = await Workspace.find({ ownerId: req.userId })
+      .sort({ updatedAt: -1 });
     res.json(workspaces);
   } catch (error) {
-    logger.error('Error fetching workspaces:', error);
-    res.status(500).json({ message: 'Error fetching workspaces' });
+    handleApiError(res, error, 'fetching', 'workspaces');
   }
 });
 
 app.put('/api/workspaces/:id', auth, async (req, res) => {
   try {
-    const workspace = await Workspace.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.userId },
-      { ...req.body, updatedAt: new Date() },
-      { new: true }
-    );
+    const { id } = req.params;
+    const { name } = req.body;
+    
+    // Validate input
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Workspace name cannot be empty' });
+    }
+    
+    // Ensure the workspace exists and belongs to the user
+    const workspace = await Workspace.findOne({ 
+      _id: id, 
+      ownerId: req.userId 
+    });
+    
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
+    
+    // Update only allowed fields
+    workspace.name = name.trim();
+    workspace.description = req.body.description || '';
+    workspace.updatedAt = new Date();
+    
+    await workspace.save();
     res.json(workspace);
   } catch (error) {
-    logger.error('Error updating workspace:', error);
-    res.status(500).json({ message: 'Error updating workspace' });
+    handleApiError(res, error, 'updating', 'workspace');
   }
 });
 
 app.delete('/api/workspaces/:id', auth, async (req, res) => {
   try {
-    const workspace = await Workspace.findOneAndDelete({
-      _id: req.params.id,
+    const { id } = req.params;
+    
+    // Find the workspace first to verify ownership
+    const workspace = await Workspace.findOne({
+      _id: id,
       ownerId: req.userId
     });
+    
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
     
-    // 관련된 모든 데이터 삭제
-    await Promise.all([
-      Category.deleteMany({ workspaceId: req.params.id }),
-      Todo.deleteMany({ workspaceId: req.params.id }),
-      BacklogTodo.deleteMany({ workspaceId: req.params.id }),
-      Memo.deleteMany({ workspaceId: req.params.id })
-    ]);
+    // Prevent deletion if it's the user's last workspace
+    const workspaceCount = await Workspace.countDocuments({ ownerId: req.userId });
+    if (workspaceCount <= 1) {
+      return res.status(400).json({ 
+        message: 'Cannot delete the last workspace. Create a new workspace first.' 
+      });
+    }
     
-    res.json({ message: 'Workspace deleted successfully' });
+    // Delete the workspace
+    await Workspace.deleteOne({ _id: id });
+    
+    // Delete all related data in a transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      await Promise.all([
+        Category.deleteMany({ workspaceId: id }, { session }),
+        Todo.deleteMany({ workspaceId: id }, { session }),
+        BacklogTodo.deleteMany({ workspaceId: id }, { session }),
+        Memo.deleteMany({ workspaceId: id }, { session })
+      ]);
+      
+      // If this was the user's current workspace, set another workspace as current
+      if (req.user.currentWorkspaceId?.toString() === id) {
+        const alternativeWorkspace = await Workspace.findOne(
+          { ownerId: req.userId, _id: { $ne: id } },
+          null,
+          { session }
+        );
+        
+        if (alternativeWorkspace) {
+          await User.updateOne(
+            { _id: req.userId },
+            { currentWorkspaceId: alternativeWorkspace._id },
+            { session }
+          );
+        }
+      }
+      
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+    
+    res.json({ 
+      message: 'Workspace deleted successfully',
+      deletedWorkspaceId: id
+    });
   } catch (error) {
-    logger.error('Error deleting workspace:', error);
-    res.status(500).json({ message: 'Error deleting workspace' });
+    handleApiError(res, error, 'deleting', 'workspace');
   }
 });
 
@@ -224,24 +576,56 @@ app.put('/api/users/current-workspace', auth, async (req, res) => {
     );
     res.json(user);
   } catch (error) {
-    logger.error('Error updating current workspace:', error);
-    res.status(500).json({ message: 'Error updating current workspace' });
+    handleApiError(res, error, 'updating current workspace', '');
   }
 });
 
-// 기존 API 엔드포인트들 수정 - workspaceId 추가
+// 입력 검증 유틸리티
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password) => {
+  return password && password.length >= 6;
+};
+
 app.post('/api/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    
+    // Validate input
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({ message: 'Valid email is required' });
+    }
+    
+    if (!validatePassword(password)) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: 'User with this email already exists' });
+    }
+    
+    // Create user with bcrypt password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword });
+    const user = new User({ 
+      name: name || email.split('@')[0], // Use part of email as name if not provided
+      email, 
+      password: hashedPassword 
+    });
+    
     await user.save();
 
     // 기본 워크스페이스 생성
     const defaultWorkspace = new Workspace({
       name: '기본 워크스페이스',
       ownerId: user._id,
-      description: '기본 작업 공간'
+      description: '기본 작업 공간',
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
     await defaultWorkspace.save();
 
@@ -249,7 +633,7 @@ app.post('/api/signup', async (req, res) => {
     user.currentWorkspaceId = defaultWorkspace._id;
     await user.save();
 
-    // 샘플 데이터 생성 (workspaceId 포함)
+    // 샘플 데이터 생성 코드는 유지...
     const today = new Date();
 
     const sampleCategories = [
@@ -399,423 +783,300 @@ app.post('/api/signup', async (req, res) => {
     ];
     await BacklogTodo.insertMany(sampleBacklogs);
 
+    // 성공 응답 + 로그인 토큰 제공
+    const token = generateToken(user._id, true);
     logger.info(`New user signed up: ${email}`);
-    res.status(201).json({ message: 'User created successfully' });
+    
+    res.status(201).json({ 
+      message: 'User created successfully',
+      token,
+      userId: user._id,
+      currentWorkspaceId: defaultWorkspace._id
+    });
   } catch (error) {
-    logger.error('Error creating user:', error);
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    handleApiError(res, error, 'creating', 'user');
   }
 });
 
 // JWT 토큰 생성 함수 수정
 const generateToken = (userId, rememberMe = false) => {
-  return jwt.sign(
-    { userId }, 
-    process.env.JWT_SECRET,
-    { expiresIn: rememberMe ? '30d' : '1h' }
-  );
+  const expiresIn = rememberMe ? '30d' : '1d';
+  
+  try {
+    return jwt.sign(
+      { userId, iat: Math.floor(Date.now() / 1000) }, 
+      config.jwtSecret,
+      { expiresIn }
+    );
+  } catch (error) {
+    logger.error('Error generating JWT token:', error);
+    throw new Error('Error generating authentication token');
+  }
 };
 
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
+    
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       logger.warn(`Login attempt failed: User not found (${email})`);
-      return res.status(400).json({ message: 'User not found' });
+      // Use same message for both cases to prevent user enumeration
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
+    
+    // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      logger.warn(`Login attempt failed: Invalid credentials (${email})`);
-      return res.status(400).json({ message: 'Invalid credentials' });
+      logger.warn(`Login attempt failed: Invalid password (${email})`);
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
-    const token = generateToken(user._id, rememberMe);
-    logger.info(`User logged in: ${email} (Remember me: ${rememberMe})`);
+    
+    // Generate token with appropriate expiration
+    const token = generateToken(user._id, rememberMe === true);
+    
+    // Check and ensure user has a valid currentWorkspaceId
+    let currentWorkspaceId = user.currentWorkspaceId;
+    
+    if (!currentWorkspaceId) {
+      // If no workspace assigned, find or create one
+      const workspace = await Workspace.findOne({ ownerId: user._id });
+      
+      if (workspace) {
+        currentWorkspaceId = workspace._id;
+        // Update user with the found workspace
+        await User.updateOne(
+          { _id: user._id },
+          { currentWorkspaceId: workspace._id }
+        );
+      } else {
+        // If no workspace exists, create one
+        const newWorkspace = new Workspace({
+          name: '기본 워크스페이스',
+          ownerId: user._id,
+          description: '기본 작업 공간',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        await newWorkspace.save();
+        
+        currentWorkspaceId = newWorkspace._id;
+        await User.updateOne(
+          { _id: user._id },
+          { currentWorkspaceId: newWorkspace._id }
+        );
+      }
+    }
+    
+    logger.info(`User logged in: ${email} (Remember me: ${!!rememberMe})`);
+    
     res.json({ 
       token, 
       userId: user._id,
-      currentWorkspaceId: user.currentWorkspaceId
+      currentWorkspaceId
     });
   } catch (error) {
-    logger.error('Error logging in:', error);
-    res.status(500).json({ message: 'Error logging in', error: error.message });
+    handleApiError(res, error, 'authenticating', 'user');
   }
 });
 
-// 기존 API 엔드포인트들 수정 - workspaceId 조건 추가
-app.get('/api/categories', auth, async (req, res) => {
-  try {
-    const categories = await Category.find({ 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    res.json(categories);
-  } catch (error) {
-    logger.error('Error fetching categories:', error);
-    res.status(500).json({ message: 'Error fetching categories' });
-  }
-});
+// API 라우트 설정
+// CRUD 핸들러 생성
+const categoryHandlers = createCrudHandlers(Category, 'Category');
+const todoHandlers = createCrudHandlers(Todo, 'Todo');
+const backlogTodoHandlers = createCrudHandlers(BacklogTodo, 'Backlog todo');
+const memoHandlers = createCrudHandlers(Memo, 'Memo');
 
-app.post('/api/categories', auth, async (req, res) => {
-  try {
-    const category = new Category({ 
-      ...req.body, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    await category.save();
-    res.status(201).json(category);
-  } catch (error) {
-    logger.error('Error creating category:', error);
-    res.status(500).json({ message: 'Error creating category' });
-  }
-});
+// 카테고리 라우트
+app.get('/api/categories', auth, categoryHandlers.getAll);
+app.get('/api/categories/:id', auth, categoryHandlers.getOne);
+app.post('/api/categories', auth, categoryHandlers.create);
+app.put('/api/categories/:id', auth, categoryHandlers.update);
 
-app.put('/api/categories/:id', auth, async (req, res) => {
-  try {
-    const category = await Category.findOneAndUpdate(
-      { 
-        _id: req.params.id, 
-        userId: req.userId,
-        workspaceId: req.workspaceId
-      },
-      req.body,
-      { new: true }
-    );
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-    res.json(category);
-  } catch (error) {
-    logger.error('Error updating category:', error);
-    res.status(500).json({ message: 'Error updating category' });
-  }
-});
-
+// 카테고리 삭제 라우트 - 관련 항목도 처리해야 함
 app.delete('/api/categories/:id', auth, async (req, res) => {
   try {
+    const { id } = req.params;
     const category = await Category.findOneAndDelete({ 
-      _id: req.params.id, 
+      _id: id, 
       userId: req.userId,
       workspaceId: req.workspaceId
     });
+    
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
     // 관련된 메모와 보관함 항목의 categoryId를 null로 설정
-    await Promise.all([
-      Memo.updateMany(
-        { categoryId: req.params.id },
-        { $set: { categoryId: null } }
-      ),
-      BacklogTodo.updateMany(
-        { categoryId: req.params.id },
-        { $set: { categoryId: null } }
-      )
-    ]);
-
-    res.json({ message: 'Category deleted successfully' });
-  } catch (error) {
-    logger.error('Error deleting category:', error);
-    res.status(500).json({ message: 'Error deleting category' });
-  }
-});
-
-app.get('/api/todos', auth, async (req, res) => {
-  try {
-    const todos = await Todo.find({ 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    res.json(todos);
-  } catch (error) {
-    logger.error('Error fetching todos:', error);
-    res.status(500).json({ message: 'Error fetching todos' });
-  }
-});
-
-app.post('/api/todos', auth, async (req, res) => {
-  try {
-    const todo = new Todo({ 
-      ...req.body, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    await todo.save();
-    res.status(201).json(todo);
-  } catch (error) {
-    logger.error('Error adding todo:', error);
-    res.status(500).json({ message: 'Error adding todo' });
-  }
-});
-
-app.put('/api/todos/:id', auth, async (req, res) => {
-  try {
-    const todo = await Todo.findOneAndUpdate(
-      { 
-        _id: req.params.id, 
-        userId: req.userId,
-        workspaceId: req.workspaceId
-      },
-      req.body,
-      { new: true }
-    );
-    if (!todo) {
-      return res.status(404).json({ message: 'Todo not found' });
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      await Promise.all([
+        Memo.updateMany(
+          { categoryId: id, workspaceId: req.workspaceId },
+          { $set: { categoryId: null, updatedAt: new Date() } },
+          { session }
+        ),
+        BacklogTodo.updateMany(
+          { categoryId: id, workspaceId: req.workspaceId },
+          { $set: { categoryId: null, updatedAt: new Date() } },
+          { session }
+        )
+      ]);
+      
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-    res.json(todo);
-  } catch (error) {
-    logger.error('Error updating todo:', error);
-    res.status(500).json({ message: 'Error updating todo' });
-  }
-});
 
-app.delete('/api/todos/:id', auth, async (req, res) => {
-  try {
-    const todo = await Todo.findOneAndDelete({ 
-      _id: req.params.id, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
+    res.json({ 
+      message: 'Category deleted successfully',
+      deletedId: id
     });
-    if (!todo) {
-      return res.status(404).json({ message: 'Todo not found' });
-    }
-    res.json({ message: 'Todo deleted successfully' });
   } catch (error) {
-    logger.error('Error deleting todo:', error);
-    res.status(500).json({ message: 'Error deleting todo' });
+    handleApiError(res, error, 'deleting', 'category');
   }
 });
 
-app.get('/api/backlog', auth, async (req, res) => {
-  try {
-    const todos = await BacklogTodo.find({ 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    res.json(todos);
-  } catch (error) {
-    logger.error('Error fetching backlog todos:', error);
-    res.status(500).json({ message: 'Error fetching backlog todos' });
-  }
-});
+// 할 일 라우트
+app.get('/api/todos', auth, todoHandlers.getAll);
+app.get('/api/todos/:id', auth, todoHandlers.getOne);
+app.post('/api/todos', auth, todoHandlers.create);
+app.put('/api/todos/:id', auth, todoHandlers.update);
+app.delete('/api/todos/:id', auth, todoHandlers.delete);
 
-app.post('/api/backlog', auth, async (req, res) => {
-  try {
-    const todo = new BacklogTodo({ 
-      ...req.body, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    await todo.save();
-    res.status(201).json(todo);
-  } catch (error) {
-    logger.error('Error adding backlog todo:', error);
-    res.status(500).json({ message: 'Error adding backlog todo' });
-  }
-});
+// 보관함 라우트
+app.get('/api/backlog', auth, backlogTodoHandlers.getAll);
+app.get('/api/backlog/:id', auth, backlogTodoHandlers.getOne);
+app.post('/api/backlog', auth, backlogTodoHandlers.create);
+app.put('/api/backlog/:id', auth, backlogTodoHandlers.update);
+app.delete('/api/backlog/:id', auth, backlogTodoHandlers.delete);
 
-app.put('/api/backlog/:id', auth, async (req, res) => {
-  try {
-    const todo = await BacklogTodo.findOneAndUpdate(
-      { 
-        _id: req.params.id, 
-        userId: req.userId,
-        workspaceId: req.workspaceId
-      },
-      req.body,
-      { new: true }
-    );
-    if (!todo) {
-      return res.status(404).json({ message: 'Backlog todo not found' });
-    }
-    res.json(todo);
-  } catch (error) {
-    logger.error('Error updating backlog todo:', error);
-    res.status(500).json({ message: 'Error updating backlog todo' });
-  }
-});
-
-app.delete('/api/backlog/:id', auth, async (req, res) => {
-  try {
-    const todo = await BacklogTodo.findOneAndDelete({ 
-      _id: req.params.id, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    if (!todo) {
-      return res.status(404).json({ message: 'Backlog todo not found' });
-    }
-    res.json({ message: 'Backlog todo deleted successfully' });
-  } catch (error) {
-    logger.error('Error deleting backlog todo:', error);
-    res.status(500).json({ message: 'Error deleting backlog todo' });
-  }
-});
-
-app.get('/api/memos', auth, async (req, res) => {
-  try {
-    const memos = await Memo.find({ 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    res.json(memos);
-  } catch (error) {
-    logger.error('Error fetching memos:', error);
-    res.status(500).json({ message: 'Error fetching memos' });
-  }
-});
-
-app.post('/api/memos', auth, async (req, res) => {
-  try {
-    const memo = new Memo({ 
-      ...req.body, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    await memo.save();
-    res.status(201).json(memo);
-  } catch (error) {
-    logger.error('Error adding memo:', error);
-    res.status(500).json({ message: 'Error adding memo' });
-  }
-});
-
-app.put('/api/memos/:id', auth, async (req, res) => {
-  try {
-    const memo = await Memo.findOneAndUpdate(
-      { 
-        _id: req.params.id, 
-        userId: req.userId,
-        workspaceId: req.workspaceId
-      },
-      req.body,
-      { new: true }
-    );
-    if (!memo) {
-      return res.status(404).json({ message: 'Memo not found' });
-    }
-    res.json(memo);
-  } catch (error) {
-    logger.error('Error updating memo:', error);
-    res.status(500).json({ message: 'Error updating memo' });
-  }
-});
-
-app.delete('/api/memos/:id', auth, async (req, res) => {
-  try {
-    const memo = await Memo.findOneAndDelete({ 
-      _id: req.params.id, 
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    if (!memo) {
-      return res.status(404).json({ message: 'Memo not found' });
-    }
-    res.json({ message: 'Memo deleted successfully' });
-  } catch (error) {
-    logger.error('Error deleting memo:', error);
-    res.status(500).json({ message: 'Error deleting memo' });
-  }
-});
-
-// 회원 탈퇴 엔드포인트 추가
-app.delete('/api/users/me', auth, async (req, res) => {
-  try {
-    // 사용자의 모든 워크스페이스 찾기
-    const workspaces = await Workspace.find({ ownerId: req.userId });
-    const workspaceIds = workspaces.map(w => w._id);
-
-    // 모든 데이터 삭제
-    await Promise.all([
-      // 워크스페이스별 데이터 삭제
-      Category.deleteMany({ userId: req.userId }),
-      Todo.deleteMany({ userId: req.userId }),
-      BacklogTodo.deleteMany({ userId: req.userId }),
-      Memo.deleteMany({ userId: req.userId }),
-      // 워크스페이스 삭제
-      Workspace.deleteMany({ ownerId: req.userId }),
-      // 사용자 삭제
-      User.findByIdAndDelete(req.userId)
-    ]);
-
-    logger.info(`User account deleted: ${req.userId}`);
-    res.json({ message: 'Account deleted successfully' });
-  } catch (error) {
-    logger.error('Error deleting account:', error);
-    res.status(500).json({ message: 'Error deleting account' });
-  }
-});
+// 메모 라우트
+app.get('/api/memos', auth, memoHandlers.getAll);
+app.get('/api/memos/:id', auth, memoHandlers.getOne);
+app.post('/api/memos', auth, memoHandlers.create);
+app.put('/api/memos/:id', auth, memoHandlers.update);
+app.delete('/api/memos/:id', auth, memoHandlers.delete);
 
 // 할 일을 보관함로 이동하는 엔드포인트
 app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
   try {
-    const todo = await Todo.findOne({ 
-      _id: req.params.id, 
-      userId: req.userId,
-      workspaceId: req.workspaceId 
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
-    if (!todo) {
-      return res.status(404).json({ message: 'Todo not found' });
+    try {
+      const todo = await Todo.findOne({ 
+        _id: req.params.id, 
+        userId: req.userId,
+        workspaceId: req.workspaceId 
+      }).session(session);
+      
+      if (!todo) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Todo not found' });
+      }
+
+      // 새로운 보관함 항목 생성
+      const newBacklogTodo = new BacklogTodo({
+        text: todo.text,
+        completed: todo.completed,
+        description: todo.description,
+        subTodos: todo.subTodos,
+        priority: todo.priority,
+        userId: req.userId,
+        workspaceId: req.workspaceId,
+        categoryId: null, // 초기에는 카테고리 없음
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      await newBacklogTodo.save({ session });
+      await Todo.findByIdAndDelete(req.params.id, { session });
+      
+      await session.commitTransaction();
+      
+      res.json({
+        message: 'Todo moved to backlog successfully',
+        backlogTodo: newBacklogTodo
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    // 새로운 보관함 항목 생성
-    const newBacklogTodo = new BacklogTodo({
-      text: todo.text,
-      completed: todo.completed,
-      description: todo.description,
-      subTodos: todo.subTodos,
-      priority: todo.priority,
-      userId: req.userId,
-      workspaceId: req.workspaceId,
-      categoryId: null // 초기에는 카테고리 없음
-    });
-    
-    await newBacklogTodo.save();
-    await Todo.findByIdAndDelete(req.params.id);
-
-    res.json(newBacklogTodo);
   } catch (error) {
-    logger.error('Error moving todo to backlog:', error);
-    res.status(500).json({ message: 'Error moving todo to backlog' });
+    handleApiError(res, error, 'moving todo to backlog', req.params.id);
   }
 });
 
 // 보관함를 할 일로 이동하는 엔드포인트
 app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
   try {
-    const backlogTodo = await BacklogTodo.findOne({ 
-      _id: req.params.id, 
-      userId: req.userId,
-      workspaceId: req.workspaceId 
-    });
+    const { date } = req.body;
     
-    if (!backlogTodo) {
-      return res.status(404).json({ message: 'Backlog todo not found' });
+    // 날짜 유효성 검증
+    if (!date) {
+      return res.status(400).json({ message: 'Date is required to move to todo' });
     }
+    
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const backlogTodo = await BacklogTodo.findOne({ 
+        _id: req.params.id, 
+        userId: req.userId,
+        workspaceId: req.workspaceId 
+      }).session(session);
+      
+      if (!backlogTodo) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Backlog todo not found' });
+      }
 
-    // 새로운 할 일 생성
-    const newTodo = new Todo({
-      text: backlogTodo.text,
-      completed: backlogTodo.completed,
-      description: backlogTodo.description,
-      subTodos: backlogTodo.subTodos,
-      priority: backlogTodo.priority,
-      date: req.body.date,
-      userId: req.userId,
-      workspaceId: req.workspaceId
-    });
-    await newTodo.save();
-
-    // 보관함 항목 삭제
-    await BacklogTodo.findByIdAndDelete(req.params.id);
-
-    res.json(newTodo);
+      // 새로운 할 일 생성
+      const newTodo = new Todo({
+        text: backlogTodo.text,
+        completed: backlogTodo.completed,
+        description: backlogTodo.description,
+        subTodos: backlogTodo.subTodos,
+        priority: backlogTodo.priority,
+        date: new Date(date),
+        userId: req.userId,
+        workspaceId: req.workspaceId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      await newTodo.save({ session });
+      await BacklogTodo.findByIdAndDelete(req.params.id, { session });
+      
+      await session.commitTransaction();
+      
+      res.json({
+        message: 'Backlog item moved to todo successfully',
+        todo: newTodo
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   } catch (error) {
-    logger.error('Error moving backlog to todo:', error);
-    res.status(500).json({ message: 'Error moving backlog to todo' });
+    handleApiError(res, error, 'moving backlog to todo', req.params.id);
   }
 });
 
@@ -824,7 +1085,45 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, '0.0.0.0', () => {
-  logger.info(`Server running on port ${PORT}`);
+// 전역 에러 핸들러
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error:', err);
+  res.status(500).json({ 
+    message: config.isProduction 
+      ? 'Internal server error' 
+      : `Internal server error: ${err.message}`
+  });
+});
+
+// 프로세스 종료 시그널 처리
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+async function gracefulShutdown() {
+  logger.info('Shutting down gracefully...');
+  
+  try {
+    await mongoose.connection.close();
+    logger.info('MongoDB connection closed');
+    process.exit(0);
+  } catch (err) {
+    logger.error('Error during shutdown:', err);
+    process.exit(1);
+  }
+}
+
+// 서버 시작
+app.listen(config.port, '0.0.0.0', () => {
+  logger.info(`Server running on port ${config.port} in ${config.environment} mode`);
+});
+
+// 예기치 않은 에러 처리
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });

@@ -12,6 +12,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Code, Link as LinkIcon, Highlighter } from 'lucide-react';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
+import { toast } from 'react-hot-toast';
 
 interface MemoListProps {
   memos: Memo[];
@@ -249,14 +250,49 @@ const MemoList: React.FC<MemoListProps> = ({
   };
 
   const handleDeleteSelected = async () => {
-    const confirmed = window.confirm(`선택한 ${selectedMemos.size}개의 메모를 삭제하시겠습니까?`);
-    if (confirmed) {
-      for (const memoId of selectedMemos) {
-        await deleteMemo(memoId);
-      }
-      setSelectedMemos(new Set());
-      setIsSelectionMode(false);
-    }
+    // 기존의 모든 토스트를 제거
+    toast.dismiss();
+    
+    // 선택형 토스트
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          선택한 {selectedMemos.size}개의 메모를 삭제하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+            onClick={async () => {
+              const count = selectedMemos.size;
+              for (const memoId of selectedMemos) {
+                await deleteMemo(memoId);
+              }
+              setSelectedMemos(new Set());
+              setIsSelectionMode(false);
+              toast.dismiss(t.id);
+              showSuccessToast(`${count}개의 메모가 삭제되었습니다.`);
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
   };
 
   const convertPlainTextToHtml = (text: string) => {
@@ -288,6 +324,58 @@ const MemoList: React.FC<MemoListProps> = ({
     const plainText = tempElement.textContent || tempElement.innerText || '';
     
     return plainText;
+  };
+
+  // 알림형 토스트를 위한 함수
+  const showSuccessToast = (message: string) => {
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-white">{message}</span>
+      </div>
+    , { duration: 2000 });
+  };
+
+  // 메모 삭제 핸들러
+  const handleDeleteMemo = (memoId: string) => {
+    // 기존의 모든 토스트를 제거
+    toast.dismiss();
+    
+    // 선택형 토스트
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <div className="font-medium">
+          정말 이 메모를 삭제하시겠습니까?
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+            onClick={() => {
+              deleteMemo(memoId);
+              toast.dismiss(t.id);
+              showSuccessToast('메모가 삭제되었습니다.');
+              setActiveMemo(null);
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      style: {
+        background: '#fff',
+        color: '#1f2937',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        borderRadius: '0.5rem',
+        padding: '1rem',
+      },
+    });
   };
 
   return (
@@ -519,10 +607,7 @@ const MemoList: React.FC<MemoListProps> = ({
                 />
                 <div className="p-4 pb-20 md:pb-4 flex justify-end">
                   <button
-                    onClick={() => {
-                      deleteMemo(activeMemo._id);
-                      setActiveMemo(null);
-                    }}
+                    onClick={() => handleDeleteMemo(activeMemo._id)}
                     className="px-4 py-2 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   >
                     <Trash2 className="w-4 h-4 inline-block mr-2" />

@@ -272,6 +272,12 @@ const createCrudHandlers = (Model, resourceName) => {
 mongoose.connect(config.mongoUri, {
   serverSelectionTimeoutMS: 5000, // 서버 선택 타임아웃
   socketTimeoutMS: 45000, // 소켓 타임아웃
+  // 트랜잭션 관련 추가 설정
+  retryWrites: true,
+  retryReads: true,
+  maxPoolSize: 10, // 연결 풀 최대 사이즈 설정
+  minPoolSize: 1,   // 최소 연결 유지 수
+  maxIdleTimeMS: 30000, // 유휴 연결 최대 유지 시간
 })
 .then(() => logger.info('Connected to MongoDB'))
 .catch((error) => {
@@ -402,14 +408,78 @@ const auth = async (req, res, next) => {
         });
         
         if (!workspaceExists) {
-          return res.status(400).json({ 
-            message: 'Invalid workspace. Please select a valid workspace.' 
-          });
+          // 현재 워크스페이스가 유효하지 않으면 다른 워크스페이스를 찾아 설정
+          const alternativeWorkspace = await Workspace.findOne({ 
+            ownerId: req.userId 
+          }).sort({ updatedAt: -1 });
+          
+          if (alternativeWorkspace) {
+            // 다른 워크스페이스 찾으면 자동으로 업데이트
+            user.currentWorkspaceId = alternativeWorkspace._id;
+            await User.updateOne(
+              { _id: req.userId },
+              { currentWorkspaceId: alternativeWorkspace._id }
+            );
+            
+            req.workspaceId = alternativeWorkspace._id;
+            logger.info(`Auto-updated user ${req.userId} workspace to ${alternativeWorkspace._id}`);
+          } else {
+            // 다른 워크스페이스도 없다면 새 워크스페이스 생성
+            const newWorkspace = new Workspace({
+              name: '기본 워크스페이스',
+              ownerId: req.userId,
+              description: '기본 작업 공간',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+            
+            await newWorkspace.save();
+            
+            user.currentWorkspaceId = newWorkspace._id;
+            await User.updateOne(
+              { _id: req.userId },
+              { currentWorkspaceId: newWorkspace._id }
+            );
+            
+            req.workspaceId = newWorkspace._id;
+            logger.info(`Created new workspace for user ${req.userId}: ${newWorkspace._id}`);
+          }
         }
       } else {
-        return res.status(400).json({ 
-          message: 'No workspace selected. Please select a workspace.' 
-        });
+        // 워크스페이스가 설정되지 않은 경우 - 다른 워크스페이스 찾거나 생성
+        const alternativeWorkspace = await Workspace.findOne({ 
+          ownerId: req.userId 
+        }).sort({ updatedAt: -1 });
+        
+        if (alternativeWorkspace) {
+          user.currentWorkspaceId = alternativeWorkspace._id;
+          await User.updateOne(
+            { _id: req.userId },
+            { currentWorkspaceId: alternativeWorkspace._id }
+          );
+          
+          req.workspaceId = alternativeWorkspace._id;
+        } else {
+          // 워크스페이스가 없으면 새로 생성
+          const newWorkspace = new Workspace({
+            name: '기본 워크스페이스',
+            ownerId: req.userId,
+            description: '기본 작업 공간',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          await newWorkspace.save();
+          
+          user.currentWorkspaceId = newWorkspace._id;
+          await User.updateOne(
+            { _id: req.userId },
+            { currentWorkspaceId: newWorkspace._id }
+          );
+          
+          req.workspaceId = newWorkspace._id;
+          logger.info(`Created new workspace for user ${req.userId}: ${newWorkspace._id}`);
+        }
       }
       
       // 마지막 활동 시간 업데이트 (성능상 이유로 비동기로 실행, 응답을 기다리지 않음)
@@ -517,20 +587,19 @@ app.delete('/api/workspaces/:id', auth, async (req, res) => {
       });
     }
     
-    // Delete the workspace
-    await Workspace.deleteOne({ _id: id });
-    
-    // Delete all related data in a transaction
+    // Start a single transaction for all operations
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      await Promise.all([
-        Category.deleteMany({ workspaceId: id }, { session }),
-        Todo.deleteMany({ workspaceId: id }, { session }),
-        BacklogTodo.deleteMany({ workspaceId: id }, { session }),
-        Memo.deleteMany({ workspaceId: id }, { session })
-      ]);
+      // Delete the workspace within the transaction - 순차적으로 실행
+      await Workspace.deleteOne({ _id: id }, { session });
+      
+      // 병렬 작업을 순차적으로 변경하여 트랜잭션 안정성 확보
+      await Category.deleteMany({ workspaceId: id }, { session });
+      await Todo.deleteMany({ workspaceId: id }, { session });
+      await BacklogTodo.deleteMany({ workspaceId: id }, { session });
+      await Memo.deleteMany({ workspaceId: id }, { session });
       
       // If this was the user's current workspace, set another workspace as current
       if (req.user.currentWorkspaceId?.toString() === id) {
@@ -550,17 +619,17 @@ app.delete('/api/workspaces/:id', auth, async (req, res) => {
       }
       
       await session.commitTransaction();
+      session.endSession();
+      
+      res.json({ 
+        message: 'Workspace deleted successfully',
+        deletedWorkspaceId: id
+      });
     } catch (error) {
       await session.abortTransaction();
-      throw error;
-    } finally {
       session.endSession();
+      throw error;
     }
-    
-    res.json({ 
-      message: 'Workspace deleted successfully',
-      deletedWorkspaceId: id
-    });
   } catch (error) {
     handleApiError(res, error, 'deleting', 'workspace');
   }
@@ -918,31 +987,31 @@ app.delete('/api/categories/:id', auth, async (req, res) => {
     session.startTransaction();
     
     try {
-      await Promise.all([
-        Memo.updateMany(
-          { categoryId: id, workspaceId: req.workspaceId },
-          { $set: { categoryId: null, updatedAt: new Date() } },
-          { session }
-        ),
-        BacklogTodo.updateMany(
-          { categoryId: id, workspaceId: req.workspaceId },
-          { $set: { categoryId: null, updatedAt: new Date() } },
-          { session }
-        )
-      ]);
+      // Promise.all 대신 순차적 실행
+      await Memo.updateMany(
+        { categoryId: id, workspaceId: req.workspaceId },
+        { $set: { categoryId: null, updatedAt: new Date() } },
+        { session }
+      );
+      
+      await BacklogTodo.updateMany(
+        { categoryId: id, workspaceId: req.workspaceId },
+        { $set: { categoryId: null, updatedAt: new Date() } },
+        { session }
+      );
       
       await session.commitTransaction();
+      session.endSession();
+      
+      res.json({ 
+        message: 'Category deleted successfully',
+        deletedId: id
+      });
     } catch (error) {
       await session.abortTransaction();
-      throw error;
-    } finally {
       session.endSession();
+      throw error;
     }
-
-    res.json({ 
-      message: 'Category deleted successfully',
-      deletedId: id
-    });
   } catch (error) {
     handleApiError(res, error, 'deleting', 'category');
   }
@@ -984,6 +1053,7 @@ app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
       
       if (!todo) {
         await session.abortTransaction();
+        session.endSession();
         return res.status(404).json({ message: 'Todo not found' });
       }
 
@@ -1005,6 +1075,7 @@ app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
       await Todo.findByIdAndDelete(req.params.id, { session });
       
       await session.commitTransaction();
+      session.endSession();
       
       res.json({
         message: 'Todo moved to backlog successfully',
@@ -1012,9 +1083,8 @@ app.post('/api/todos/:id/move-to-backlog', auth, async (req, res) => {
       });
     } catch (error) {
       await session.abortTransaction();
-      throw error;
-    } finally {
       session.endSession();
+      throw error;
     }
   } catch (error) {
     handleApiError(res, error, 'moving todo to backlog', req.params.id);
@@ -1043,6 +1113,7 @@ app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
       
       if (!backlogTodo) {
         await session.abortTransaction();
+        session.endSession();
         return res.status(404).json({ message: 'Backlog todo not found' });
       }
 
@@ -1064,6 +1135,7 @@ app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
       await BacklogTodo.findByIdAndDelete(req.params.id, { session });
       
       await session.commitTransaction();
+      session.endSession();
       
       res.json({
         message: 'Backlog item moved to todo successfully',
@@ -1071,12 +1143,77 @@ app.post('/api/backlog/:id/move-to-todo', auth, async (req, res) => {
       });
     } catch (error) {
       await session.abortTransaction();
-      throw error;
-    } finally {
       session.endSession();
+      throw error;
     }
   } catch (error) {
     handleApiError(res, error, 'moving backlog to todo', req.params.id);
+  }
+});
+
+// 사용자 계정 삭제 엔드포인트
+app.delete('/api/users/me', auth, async (req, res) => {
+  try {
+    // 세션 시작 - 트랜잭션으로 모든 작업 수행
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // 사용자의 모든 워크스페이스 찾기
+      const workspaces = await Workspace.find({ 
+        ownerId: req.userId 
+      }, null, { session });
+      
+      // 워크스페이스 ID 목록 추출
+      const workspaceIds = workspaces.map(workspace => workspace._id);
+      
+      // 순차적으로 사용자 관련 데이터 삭제
+      // 1. 모든 워크스페이스에 속한 메모, 할 일, 보관함 할 일, 카테고리 삭제
+      for (const workspaceId of workspaceIds) {
+        await Category.deleteMany({ 
+          workspaceId, 
+          userId: req.userId 
+        }, { session });
+        
+        await Todo.deleteMany({ 
+          workspaceId, 
+          userId: req.userId 
+        }, { session });
+        
+        await BacklogTodo.deleteMany({ 
+          workspaceId, 
+          userId: req.userId 
+        }, { session });
+        
+        await Memo.deleteMany({ 
+          workspaceId, 
+          userId: req.userId 
+        }, { session });
+      }
+      
+      // 2. 사용자의 모든 워크스페이스 삭제
+      await Workspace.deleteMany({ 
+        ownerId: req.userId 
+      }, { session });
+      
+      // 3. 사용자 계정 삭제
+      await User.findByIdAndDelete(req.userId, { session });
+      
+      // 모든 작업이 성공적으로 완료되면 트랜잭션 커밋
+      await session.commitTransaction();
+      session.endSession();
+      
+      res.json({ 
+        message: 'User account and all associated data deleted successfully' 
+      });
+    } catch (error) {
+      // 오류 발생 시 트랜잭션 롤백
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  } catch (error) {
+    handleApiError(res, error, 'deleting', 'user account');
   }
 });
 

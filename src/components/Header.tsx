@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                백로그
+                보관함
               </button>
               <button
                 onClick={() => setActiveTab('memo')}

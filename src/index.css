@@ -297,3 +297,109 @@ input:focus, textarea:focus {
 .editor-toolbar::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, Opera */
 }
+
+/* Page Transition Animations */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Ensure content doesn't jump during transitions */
+.page-container {
+  min-height: calc(100vh - 64px - 56px);
+}
+
+/* Item Filtering Animation */
+.item-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.item-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.item-exit {
+  opacity: 1;
+}
+
+.item-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 250ms ease-in, transform 250ms ease-in;
+}
+
+/* Staggered animation delay for list items */
+.item-enter-active:nth-child(1) { transition-delay: 0ms; }
+.item-enter-active:nth-child(2) { transition-delay: 30ms; }
+.item-enter-active:nth-child(3) { transition-delay: 60ms; }
+.item-enter-active:nth-child(4) { transition-delay: 90ms; }
+.item-enter-active:nth-child(5) { transition-delay: 120ms; }
+.item-enter-active:nth-child(n+6) { transition-delay: 150ms; }
+
+/* Memo Detail Animation */
+.memo-detail-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.memo-detail-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
+
+.memo-detail-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.memo-detail-exit-active {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Mobile specific animation (slide up from bottom) */
+@media (max-width: 768px) {
+  .memo-detail-enter {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  
+  .memo-detail-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+  }
+  
+  .memo-detail-exit {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .memo-detail-exit-active {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 200ms ease-in, transform 200ms ease-in;
+  }
+}

@@ -1512,6 +1512,8 @@ function App() {
                     onDeleteAccount={handleDeleteAccount}
                     isGuestMode={isGuestMode}
                     isModal={false}
+                    todos={todos}
+                    backlogTodos={backlogTodos}
                   />
                 </div>
               ) : (
@@ -1547,6 +1549,8 @@ function App() {
           onDeleteAccount={handleDeleteAccount}
           isGuestMode={isGuestMode}
           isModal={true}
+          todos={todos}
+          backlogTodos={backlogTodos}
         />
       )}
     </div>

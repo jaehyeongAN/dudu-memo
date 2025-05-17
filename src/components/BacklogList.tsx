@@ -78,6 +78,10 @@ const BacklogList: React.FC<BacklogListProps> = ({
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
+  const [showMoveConfirm, setShowMoveConfirm] = useState(false);
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
 
   const getCategory = (categoryId?: string) => {
     return categories.find(cat => cat._id === categoryId);
@@ -140,46 +144,19 @@ const BacklogList: React.FC<BacklogListProps> = ({
     showSuccessToast(todo.completed ? '할 일을 다시 시작합니다 💪' : '할 일을 완료했습니다 🎉');
   };
 
-  // 할 일 삭제 처리 함수 추가
+  // 할 일 삭제 처리 함수 수정
   const handleDeleteTodo = (todoId: string) => {
-    // 기존의 모든 토스트를 제거
-    toast.dismiss();
-    
-    // 선택형 토스트
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          정말 이 할 일을 삭제하시겠습니까?
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
-            onClick={() => {
-              deleteTodo(todoId);
-              toast.dismiss(t.id);
-              showSuccessToast('할 일이 삭제되었습니다.');
-            }}
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+    setTodoToDelete(todoId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteTodo = () => {
+    if (todoToDelete) {
+      deleteTodo(todoToDelete);
+      showSuccessToast('할 일이 삭제되었습니다.');
+      setTodoToDelete(null);
+      setShowDeleteConfirm(false);
+    }
   };
 
   // 알림형 토스트를 위한 별도 함수
@@ -197,55 +174,19 @@ const BacklogList: React.FC<BacklogListProps> = ({
   };
 
   const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    const todo = todos.find(t => t._id === selectedTodoId);
-    
-    const showConfirmToast = () => {
-      toast((t) => (
-        <div className="flex flex-col gap-3">
-          <div className="font-medium">
-            해당 보관 할일을 {format(date, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              onClick={() => {
-                setIsCalendarOpen(false);
-                setSelectedTodoId(null);
-                setSelectedDate(null);
-                toast.dismiss(t.id);
-              }}
-            >
-              취소
-            </button>
-            <button
-              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-              onClick={() => {
-                onMoveToTodo(selectedTodoId!, date);
-                setIsCalendarOpen(false);
-                setSelectedTodoId(null);
-                setSelectedDate(null);
-                toast.dismiss(t.id);
-                showSuccessToast('할 일이 캘린더에 등록되었습니다.');
-              }}
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: Infinity,
-        style: {
-          background: '#fff',
-          color: '#1f2937',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          borderRadius: '0.5rem',
-          padding: '1rem',
-        },
-      });
-    };
+    setCalendarSelectedDate(date);
+    setShowMoveConfirm(true);
+  };
 
-    showConfirmToast();
+  const confirmMove = () => {
+    if (selectedTodoId && calendarSelectedDate) {
+      onMoveToTodo(selectedTodoId, calendarSelectedDate);
+      setIsCalendarOpen(false);
+      setSelectedTodoId(null);
+      setCalendarSelectedDate(null);
+      setShowMoveConfirm(false);
+      showSuccessToast('할 일이 캘린더에 등록되었습니다.');
+    }
   };
 
   return (
@@ -518,7 +459,31 @@ const BacklogList: React.FC<BacklogListProps> = ({
         </div>
       </div>
 
-      {/* 달력 모달 추가 */}
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">할 일 삭제</h3>
+            <p>정말 이 할 일을 삭제하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+                onClick={confirmDeleteTodo}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 달력 모달 */}
       {isCalendarOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
@@ -544,6 +509,32 @@ const BacklogList: React.FC<BacklogListProps> = ({
               className="w-full border-none"
               minDate={new Date()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* 캘린더 이동 확인 모달 */}
+      {showMoveConfirm && calendarSelectedDate && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">캘린더 등록</h3>
+            <p>해당 보관 할일을 {format(calendarSelectedDate, 'yyyy-MM-dd')} 일정에 등록하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => {
+                  setShowMoveConfirm(false);
+                }}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+                onClick={confirmMove}
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}

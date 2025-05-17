@@ -66,6 +66,12 @@ const TodoList: React.FC<TodoListProps> = ({
   const touchStartY = useRef<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [showPostponeConfirm, setShowPostponeConfirm] = useState(false);
+  const [todoToPostpone, setTodoToPostpone] = useState<Todo | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
+  const [showMoveToBacklogConfirm, setShowMoveToBacklogConfirm] = useState(false);
+  const [todoToMoveToBacklog, setTodoToMoveToBacklog] = useState<string | null>(null);
 
   // 완료된 할 일을 맨 아래로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
@@ -141,48 +147,18 @@ const TodoList: React.FC<TodoListProps> = ({
   }, [openPriorityId]);
 
   const handlePostpone = (todo: Todo) => {
-    // 기존의 모든 토스트를 제거
-    toast.dismiss();
-    
-    // 선택형 토스트
-    const showConfirmToast = () => {
-      return toast((t) => (
-        <div className="flex flex-col gap-3 p-2">
-          <div className="font-medium text-gray-800">할 일을 내일로 미루시겠습니까?</div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              onClick={() => toast.dismiss(t.id)}
-            >
-              취소
-            </button>
-            <button
-              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-              onClick={() => {
-                const tomorrow = addDays(selectedDate, 1);
-                updateTodoDate(todo._id, tomorrow);
-                toast.dismiss(t.id);
-                // 알림형 토스트를 별도 함수로 호출
-                showSuccessToast('할 일을 내일로 미뤘습니다');
-              }}
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: Infinity,
-        style: {
-          background: '#fff',
-          color: '#1f2937',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          borderRadius: '0.5rem',
-          padding: '1rem',
-        },
-      });
-    };
+    setTodoToPostpone(todo);
+    setShowPostponeConfirm(true);
+  };
 
-    showConfirmToast();
+  const confirmPostpone = () => {
+    if (todoToPostpone) {
+      const tomorrow = addDays(selectedDate, 1);
+      updateTodoDate(todoToPostpone._id, tomorrow);
+      showSuccessToast('할 일을 내일로 미뤘습니다');
+      setTodoToPostpone(null);
+      setShowPostponeConfirm(false);
+    }
   };
 
   // 알림형 토스트를 위한 별도 함수
@@ -201,85 +177,31 @@ const TodoList: React.FC<TodoListProps> = ({
 
   // 할 일 삭제 처리 함수 추가
   const handleDeleteTodo = (todoId: string) => {
-    // 기존의 모든 토스트를 제거
-    toast.dismiss();
-    
-    // 선택형 토스트
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          정말 이 할 일을 삭제하시겠습니까?
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
-            onClick={() => {
-              deleteTodo(todoId);
-              toast.dismiss(t.id);
-              showSuccessToast('할 일이 삭제되었습니다.');
-            }}
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+    setTodoToDelete(todoId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteTodo = () => {
+    if (todoToDelete) {
+      deleteTodo(todoToDelete);
+      showSuccessToast('할 일이 삭제되었습니다.');
+      setTodoToDelete(null);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleMoveToBacklog = (todoId: string) => {
-    const showConfirmToast = () => {
-      toast((t) => (
-        <div className="flex flex-col gap-3">
-          <div className="font-medium">
-            해당 할 일을 보관함으로 이동하시겠습니까?
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              onClick={() => toast.dismiss(t.id)}
-            >
-              취소
-            </button>
-            <button
-              className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
-              onClick={() => {
-                onMoveToBacklog(todoId);
-                toast.dismiss(t.id);
-                showSuccessToast('할 일을 보관함에 보관하였습니다.');
-              }}
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: Infinity,
-        style: {
-          background: '#fff',
-          color: '#1f2937',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          borderRadius: '0.5rem',
-          padding: '1rem',
-        },
-      });
-    };
+    setTodoToMoveToBacklog(todoId);
+    setShowMoveToBacklogConfirm(true);
+  };
 
-    showConfirmToast();
+  const confirmMoveToBacklog = () => {
+    if (todoToMoveToBacklog) {
+      onMoveToBacklog(todoToMoveToBacklog);
+      showSuccessToast('할 일을 보관함에 보관하였습니다.');
+      setTodoToMoveToBacklog(null);
+      setShowMoveToBacklogConfirm(false);
+    }
   };
 
   return (
@@ -497,6 +419,78 @@ const TodoList: React.FC<TodoListProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 미루기 확인 모달 */}
+      {showPostponeConfirm && todoToPostpone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">할 일 미루기</h3>
+            <p>할 일을 내일로 미루시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowPostponeConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+                onClick={confirmPostpone}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">할 일 삭제</h3>
+            <p>정말 이 할 일을 삭제하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+                onClick={confirmDeleteTodo}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 보관함 이동 확인 모달 */}
+      {showMoveToBacklogConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">보관함 이동</h3>
+            <p>해당 할 일을 보관함으로 이동하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowMoveToBacklogConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+                onClick={confirmMoveToBacklog}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

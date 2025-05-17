@@ -209,6 +209,9 @@ const MemoList: React.FC<MemoListProps> = ({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const detailRef = React.useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [memoToDelete, setMemoToDelete] = useState<string | null>(null);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
   // 화면 크기 변경 감지
   useEffect(() => {
@@ -261,49 +264,7 @@ const MemoList: React.FC<MemoListProps> = ({
   };
 
   const handleDeleteSelected = async () => {
-    // 기존의 모든 토스트를 제거
-    toast.dismiss();
-    
-    // 선택형 토스트
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          선택한 {selectedMemos.size}개의 메모를 삭제하시겠습니까?
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
-            onClick={async () => {
-              const count = selectedMemos.size;
-              for (const memoId of selectedMemos) {
-                await deleteMemo(memoId);
-              }
-              setSelectedMemos(new Set());
-              setIsSelectionMode(false);
-              toast.dismiss(t.id);
-              showSuccessToast(`${count}개의 메모가 삭제되었습니다.`);
-            }}
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+    setShowBatchDeleteConfirm(true);
   };
 
   const convertPlainTextToHtml = (text: string) => {
@@ -348,45 +309,29 @@ const MemoList: React.FC<MemoListProps> = ({
 
   // 메모 삭제 핸들러
   const handleDeleteMemo = (memoId: string) => {
-    // 기존의 모든 토스트를 제거
-    toast.dismiss();
-    
-    // 선택형 토스트
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div className="font-medium">
-          정말 이 메모를 삭제하시겠습니까?
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            취소
-          </button>
-          <button
-            className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
-            onClick={() => {
-              deleteMemo(memoId);
-              toast.dismiss(t.id);
-              showSuccessToast('메모가 삭제되었습니다.');
-              setActiveMemo(null);
-            }}
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#1f2937',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-      },
-    });
+    setMemoToDelete(memoId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteMemo = () => {
+    if (memoToDelete) {
+      deleteMemo(memoToDelete);
+      showSuccessToast('메모가 삭제되었습니다.');
+      setActiveMemo(null);
+      setMemoToDelete(null);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const confirmBatchDelete = async () => {
+    const count = selectedMemos.size;
+    for (const memoId of selectedMemos) {
+      await deleteMemo(memoId);
+    }
+    setSelectedMemos(new Set());
+    setIsSelectionMode(false);
+    setShowBatchDeleteConfirm(false);
+    showSuccessToast(`${count}개의 메모가 삭제되었습니다.`);
   };
 
   return (
@@ -637,6 +582,54 @@ const MemoList: React.FC<MemoListProps> = ({
           </div>
         </CSSTransition>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">메모 삭제</h3>
+            <p>정말 이 메모를 삭제하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+                onClick={confirmDeleteMemo}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 일괄 삭제 확인 모달 */}
+      {showBatchDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">여러 메모 삭제</h3>
+            <p>선택한 {selectedMemos.size}개의 메모를 삭제하시겠습니까?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowBatchDeleteConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-3 py-1 text-sm text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+                onClick={confirmBatchDelete}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

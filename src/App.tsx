@@ -1258,7 +1258,7 @@ function App() {
       setTodos(prev => prev.filter(todo => todo._id !== id));
     } catch (error) {
       console.error('Error moving todo to backlog:', error);
-      toast.error('보관함로 이동하는 중 오류가 발생했습니다.');
+      toast.error('보관함로 이동하는 중 오류가 발생했습니다.', { duration: 2000 });
     }
   };
 

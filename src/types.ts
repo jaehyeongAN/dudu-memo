@@ -13,6 +13,7 @@ export interface Todo {
   description: string;
   subTodos: SubTodo[];
   priority: 'high' | 'medium' | 'low';
+  userId?: string;
 }
 
 export interface BacklogTodo {
@@ -24,6 +25,7 @@ export interface BacklogTodo {
   subTodos: SubTodo[];
   priority: 'high' | 'medium' | 'low';
   categoryId?: string;
+  userId?: string;
 }
 
 export interface Category {
@@ -31,6 +33,7 @@ export interface Category {
   workspaceId: string;
   name: string;
   color: string;
+  userId?: string;
 }
 
 export interface Memo {
@@ -40,6 +43,7 @@ export interface Memo {
   content: string;
   lastEdited: Date;
   categoryId?: string;
+  userId?: string;
 }
 
 export interface Workspace {

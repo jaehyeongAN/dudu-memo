@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FilePlus2, Trash2, ArrowLeft, Tag, X, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Memo, Category } from '../types';
@@ -32,7 +32,8 @@ interface MemoListProps {
 const MemoEditor: React.FC<{
   content: string;
   onChange: (content: string) => void;
-}> = ({ content, onChange }) => {
+  isMobile: boolean;
+}> = ({ content, onChange, isMobile }) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -57,7 +58,7 @@ const MemoEditor: React.FC<{
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
-    autofocus: true,
+    autofocus: !isMobile, // 모바일에서는 자동 포커스 비활성화
   });
 
   // 새로 추가: content prop이 변경될 때 에디터 내용 업데이트
@@ -207,7 +208,17 @@ const MemoList: React.FC<MemoListProps> = ({
   const [selectedMemos, setSelectedMemos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const detailRef = React.useRef(null);
-  const isMobile = window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // 화면 크기 변경 감지
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 메모를 마지막 수정 시간 기준으로 정렬
   const sortedAndFilteredMemos = React.useMemo(() => {
@@ -527,75 +538,77 @@ const MemoList: React.FC<MemoListProps> = ({
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setActiveMemo(null)}
-                      className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                      className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <input
-                      type="text"
-                      value={activeMemo.title}
-                      onChange={(e) =>
-                        updateMemo(activeMemo._id, e.target.value, activeMemo.content, activeMemo.categoryId)
-                      }
-                      className="flex-1 text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-0"
-                      placeholder="제목을 입력하세요"
-                    />
-                    <div className="relative">
-                    <button
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        activeMemo?.categoryId
-                          ? `hover:opacity-80`
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      style={activeMemo?.categoryId ? {
-                        backgroundColor: getCategory(activeMemo.categoryId)?.color + '20',
-                        color: getCategory(activeMemo.categoryId)?.color
-                      } : undefined}
-                    >
-                      <Tag className="w-3.5 h-3.5" />
-                      {activeMemo?.categoryId ? getCategory(activeMemo.categoryId)?.name : ''}
-                    </button>
-                    {showCategoryDropdown && (
-                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                        <div className="p-2">
-                          <div className="flex justify-between items-center mb-2 px-3 py-2">
-                            <span className="text-sm font-medium">카테고리</span>
-                            <button
-                              onClick={() => setShowCategoryDropdown(false)}
-                              className="text-gray-400 hover:text-gray-600"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                    <div className="flex-1 flex flex-wrap gap-2 items-center">
+                      <input
+                        type="text"
+                        value={activeMemo.title}
+                        onChange={(e) =>
+                          updateMemo(activeMemo._id, e.target.value, activeMemo.content, activeMemo.categoryId)
+                        }
+                        className="flex-1 min-w-0 max-w-full text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-0"
+                        placeholder="제목을 입력하세요"
+                      />
+                      <div className="relative flex-shrink-0">
+                        <button
+                          onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            activeMemo?.categoryId
+                              ? `hover:opacity-80`
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                          style={activeMemo?.categoryId ? {
+                            backgroundColor: getCategory(activeMemo.categoryId)?.color + '20',
+                            color: getCategory(activeMemo.categoryId)?.color
+                          } : undefined}
+                        >
+                          <Tag className="w-3.5 h-3.5" />
+                          {activeMemo?.categoryId ? getCategory(activeMemo.categoryId)?.name : ''}
+                        </button>
+                        {showCategoryDropdown && (
+                          <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                            <div className="p-2">
+                              <div className="flex justify-between items-center mb-2 px-3 py-2">
+                                <span className="text-sm font-medium">카테고리</span>
+                                <button
+                                  onClick={() => setShowCategoryDropdown(false)}
+                                  className="text-gray-400 hover:text-gray-600"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, undefined);
+                                  setShowCategoryDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
+                              >
+                                없음
+                              </button>
+                              {categories.map(category => (
+                                <button
+                                  key={category._id}
+                                  onClick={() => {
+                                    updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, category._id);
+                                    setShowCategoryDropdown(false);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                                >
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: category.color }}
+                                  />
+                                  {category.name}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <button
-                            onClick={() => {
-                              updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, undefined);
-                              setShowCategoryDropdown(false);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50"
-                          >
-                            없음
-                          </button>
-                          {categories.map(category => (
-                            <button
-                              key={category._id}
-                              onClick={() => {
-                                updateMemo(activeMemo._id, activeMemo.title, activeMemo.content, category._id);
-                                setShowCategoryDropdown(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: category.color }}
-                              />
-                              {category.name}
-                            </button>
-                          ))}
-                        </div>
+                        )}
                       </div>
-                    )}
                     </div>
                   </div>
                 </div>
@@ -604,6 +617,7 @@ const MemoList: React.FC<MemoListProps> = ({
                   onChange={(newContent) =>
                     updateMemo(activeMemo._id, activeMemo.title, newContent, activeMemo.categoryId)
                   }
+                  isMobile={isMobile}
                 />
                 <div className="p-4 pb-20 md:pb-4 flex justify-end">
                   <button
